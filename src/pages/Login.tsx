@@ -7,8 +7,8 @@ import { Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 /* ─── Config ────────────────────────────────────────────────── */
 const BRAND = {
-  name: 'CRM AI-First',
-  tagline: 'Inteligência que vende por você',
+  name: 'OTTEN CRM',
+  tagline: 'Sua equipe comercial potencializada por IA',
   features: [
     { label: 'Pipeline Inteligente', desc: 'IA que prioriza seus melhores leads' },
     { label: 'Agente Autônomo 24/7', desc: 'Responde e qualifica via WhatsApp' },
@@ -172,8 +172,8 @@ export default function Login() {
             transition={{ delay: 0.3, duration: 0.8 }}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                <span className="text-[#07070a] font-bold text-sm">AI</span>
+              <div className="w-8 h-8 rounded-xl bg-[#C9A84C]/15 ring-1 ring-[#C9A84C]/30 flex items-center justify-center overflow-hidden">
+                <img src="/otten-logo.png" alt="OTTEN" className="w-7 h-7 object-contain" />
               </div>
               <span className="text-[#f8f6f1]/60 text-sm font-medium tracking-[0.2em] uppercase">
                 {BRAND.name}
@@ -276,8 +276,8 @@ export default function Login() {
           {/* Mobile brand (hidden on desktop) */}
           <div className="lg:hidden text-center mb-10">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                <span className="text-[#07070a] font-bold text-sm">AI</span>
+              <div className="w-9 h-9 rounded-xl bg-[#C9A84C]/15 ring-1 ring-[#C9A84C]/30 flex items-center justify-center overflow-hidden">
+                <img src="/otten-logo.png" alt="OTTEN" className="w-8 h-8 object-contain" />
               </div>
             </div>
             <h1
