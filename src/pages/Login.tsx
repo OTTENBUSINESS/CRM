@@ -9,11 +9,7 @@ import { Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 const BRAND = {
   name: 'OTTEN CRM',
   tagline: 'Sua equipe comercial potencializada por IA',
-  features: [
-    { label: 'Pipeline Inteligente', desc: 'IA que prioriza seus melhores leads' },
-    { label: 'Agente Autônomo 24/7', desc: 'Responde e qualifica via WhatsApp' },
-    { label: 'Coach em Tempo Real', desc: 'Sugestões durante suas chamadas' },
-  ],
+  features: [],
 };
 
 /* ─── Geometric Shard Component ─────────────────────────────── */
@@ -163,91 +159,37 @@ export default function Login() {
           transition={{ delay: 0.8, duration: 1.5 }}
         />
 
-        {/* Content overlay */}
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
-          {/* Brand */}
+        {/* Content overlay — logo + nome centralizados */}
+        <div className="relative z-10 flex flex-col justify-center items-center p-12 xl:p-16 w-full h-full">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            className="flex flex-col items-center gap-8 text-center"
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
+            transition={{ delay: 0.3, duration: 0.9 }}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-[#C9A84C]/15 ring-1 ring-[#C9A84C]/30 flex items-center justify-center overflow-hidden">
-                <img src="/otten-logo.png" alt="OTTEN" className="w-7 h-7 object-contain" />
-              </div>
-              <span className="text-[#f8f6f1]/60 text-sm font-medium tracking-[0.2em] uppercase">
+            {/* Logo grande com brilho dourado */}
+            <div className="w-32 h-32 rounded-3xl bg-[#C9A84C]/12 ring-2 ring-[#C9A84C]/30 flex items-center justify-center overflow-hidden shadow-[0_0_80px_rgba(201,168,76,0.2)]">
+              <img src="/otten-logo.png" alt="OTTEN" className="w-28 h-28 object-contain" />
+            </div>
+
+            {/* Nome grande */}
+            <div className="space-y-3">
+              <h1
+                className="text-6xl xl:text-7xl font-bold text-[#f8f6f1] tracking-tight"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
                 {BRAND.name}
-              </span>
+              </h1>
+              <motion.div
+                className="w-24 h-[2px] bg-gradient-to-r from-transparent via-amber-500/60 to-transparent mx-auto"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.9, duration: 0.7 }}
+              />
+              <p className="text-[#f8f6f1]/40 text-base tracking-wider">
+                {BRAND.tagline}
+              </p>
             </div>
-          </motion.div>
-
-          {/* Headline */}
-          <div className="flex-1 flex flex-col justify-center max-w-lg">
-            <motion.h1
-              className="text-4xl xl:text-5xl font-extralight text-[#f8f6f1] leading-[1.15] mb-6 tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-            >
-              {BRAND.tagline.split(' ').map((word, i) => (
-                <span key={i}>
-                  {i === BRAND.tagline.split(' ').length - 1 ? (
-                    <span className="text-amber-400 font-semibold">{word}</span>
-                  ) : (
-                    word
-                  )}{' '}
-                </span>
-              ))}
-            </motion.h1>
-
-            <motion.div
-              className="w-16 h-[1px] bg-gradient-to-r from-amber-500/60 to-transparent mb-8"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              style={{ transformOrigin: 'left' }}
-            />
-
-            {/* Feature cards */}
-            <div className="space-y-4">
-              {BRAND.features.map((feature, i) => (
-                <motion.div
-                  key={feature.label}
-                  className="flex items-start gap-4 group"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1 + i * 0.15, duration: 0.5 }}
-                >
-                  <div className="w-1 h-10 rounded-full bg-gradient-to-b from-amber-500/50 to-amber-500/0 mt-0.5 group-hover:from-amber-400/80 transition-colors duration-500" />
-                  <div>
-                    <p className="text-[#f8f6f1]/90 text-sm font-medium">{feature.label}</p>
-                    <p className="text-[#f8f6f1]/40 text-xs mt-0.5">{feature.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom stats */}
-          <motion.div
-            className="flex gap-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.6, duration: 0.8 }}
-          >
-            {[
-              { value: '80+', label: 'Edge Functions' },
-              { value: '12', label: 'Integrações' },
-              { value: '24/7', label: 'Agente IA' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-amber-400 text-xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {stat.value}
-                </p>
-                <p className="text-[#f8f6f1]/30 text-[11px] tracking-wide uppercase">{stat.label}</p>
-              </div>
-            ))}
           </motion.div>
         </div>
 
