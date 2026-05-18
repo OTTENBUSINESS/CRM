@@ -1,0 +1,558 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* OTTEN CRM Design System
+   Based on: Black sidebar, gold accent, clean white cards
+   All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Base colors - Light theme */
+    --background: 220 20% 97%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    /* Primary = Near-black */
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary = Light gray backgrounds */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent = Gold (OTTEN brand color) */
+    --accent: 43 73% 52%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 43 73% 52%;
+
+    --radius: 0.5rem;
+
+    /* CS System Status Colors */
+    --cs-healthy: 142 71% 45%;
+    --cs-healthy-foreground: 0 0% 100%;
+    --cs-alert: 45 93% 47%;
+    --cs-alert-foreground: 0 0% 0%;
+    --cs-risk: 0 84% 60%;
+    --cs-risk-foreground: 0 0% 100%;
+    --cs-info: 217 91% 60%;
+    --cs-info-foreground: 0 0% 100%;
+
+    /* Sidebar = Pure Black (OTTEN) — alta legibilidade */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 43 15% 90%;        /* era 75% — muito mais claro */
+    --sidebar-primary: 43 73% 52%;
+    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 43 35% 96%; /* era 88% — quase branco-ouro */
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 43 73% 52%;
+    --sidebar-muted: 43 15% 68%;             /* era 55% — labels visíveis */
+
+    /* Chart colors */
+    --chart-1: 43 73% 52%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 45 93% 47%;
+    --chart-5: 280 65% 60%;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 97%;          /* branco puro — mais legível */
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 97%;     /* branco puro nos cards */
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 97%;
+
+    --primary: 43 73% 52%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 97%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 72%;    /* era 55% — muito mais legível agora */
+
+    --accent: 43 73% 52%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 43 73% 52%;
+
+    /* CS System Colors - Dark */
+    --cs-healthy: 142 70% 45%;
+    --cs-healthy-foreground: 0 0% 100%;
+    --cs-alert: 45 93% 55%;
+    --cs-alert-foreground: 0 0% 0%;
+    --cs-risk: 0 72% 51%;
+    --cs-risk-foreground: 0 0% 100%;
+    --cs-info: 217 91% 65%;
+    --cs-info-foreground: 0 0% 100%;
+
+    /* Sidebar stays black — high legibility */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 43 15% 92%;        /* quase branco ouro */
+    --sidebar-primary: 43 73% 52%;
+    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-accent: 0 0% 13%;
+    --sidebar-accent-foreground: 43 40% 97%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 43 73% 52%;
+    --sidebar-muted: 43 18% 72%;             /* labels bem visíveis */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* ===== Brilho ambiente — fundo premium com glow dourado ===== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      /* Glow dourado topo-direita — luz principal */
+      radial-gradient(ellipse 80% 60% at 92% 0%, hsl(43 73% 52% / 0.16), transparent 60%),
+      /* Glow dourado inferior-esquerdo — eco */
+      radial-gradient(ellipse 70% 50% at 8% 100%, hsl(43 73% 52% / 0.08), transparent 60%),
+      /* Spot central pra dar profundidade */
+      radial-gradient(circle at 50% 50%, hsl(43 30% 30% / 0.05), transparent 70%);
+  }
+
+  /* Tema claro: brilho um pouco mais forte tb */
+  :root:not(.dark) body::before {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 92% 0%, hsl(43 73% 60% / 0.12), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 8% 100%, hsl(43 73% 60% / 0.06), transparent 60%);
+  }
+
+  /* Mantém conteúdo acima do brilho */
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Fix: Radix portaled dropdowns (Select, Popover, DatePicker) must render
+   above all dialog overlays when opened from nested modals */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+@layer components {
+  /* =====================================================
+   * 3D Button System — OTTEN CRM
+   * Efeito de profundidade com gradiente + placa inferior
+   * ===================================================== */
+
+  /* Base 3D: transição suave e posição relativa */
+  .btn-3d {
+    position: relative;
+    transition:
+      transform 80ms ease,
+      box-shadow 80ms ease,
+      filter 120ms ease,
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease;
+  }
+
+  /* Press: botão "desce" 3px e sombra some */
+  .btn-3d:active:not(:disabled) {
+    transform: translateY(3px);
+  }
+
+  /* ---- PRIMARY (ouro no dark, preto no light) ---- */
+  .btn-3d-primary {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, hsl(var(--primary)) 82%, white 18%) 0%,
+      hsl(var(--primary)) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 4px 0 color-mix(in srgb, hsl(var(--primary)) 52%, black 48%),
+      0 6px 16px rgba(0, 0, 0, 0.28);
+  }
+  .btn-3d-primary:hover:not(:disabled) {
+    filter: brightness(1.13);
+  }
+  .btn-3d-primary:active:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 1px 0 color-mix(in srgb, hsl(var(--primary)) 52%, black 48%),
+      0 2px 5px rgba(0, 0, 0, 0.18);
+  }
+
+  /* ---- DESTRUCTIVE (vermelho) ---- */
+  .btn-3d-destructive {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, hsl(var(--destructive)) 78%, white 22%) 0%,
+      hsl(var(--destructive)) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 4px 0 color-mix(in srgb, hsl(var(--destructive)) 58%, black 42%),
+      0 6px 16px rgba(220, 38, 38, 0.28);
+  }
+  .btn-3d-destructive:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+  .btn-3d-destructive:active:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 1px 0 color-mix(in srgb, hsl(var(--destructive)) 58%, black 42%),
+      0 2px 5px rgba(220, 38, 38, 0.18);
+  }
+
+  /* ---- OUTLINE ---- */
+  .btn-3d-outline {
+    box-shadow:
+      0 3px 0 hsl(var(--border)),
+      0 5px 10px rgba(0, 0, 0, 0.09);
+  }
+  .btn-3d-outline:active:not(:disabled) {
+    box-shadow:
+      0 0px 0 hsl(var(--border)),
+      0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ---- SECONDARY ---- */
+  .btn-3d-secondary {
+    box-shadow:
+      0 3px 0 rgba(0, 0, 0, 0.14),
+      0 5px 10px rgba(0, 0, 0, 0.07);
+  }
+  .btn-3d-secondary:active:not(:disabled) {
+    box-shadow:
+      0 0px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* =====================================================
+   * 3D Sidebar Items — alto relevo nos menus
+   * ===================================================== */
+
+  /* Item INATIVO — relevo sutil ao hover */
+  .nav-3d {
+    position: relative;
+    transition:
+      transform 80ms ease,
+      box-shadow 120ms ease,
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  .nav-3d:hover:not(.nav-3d-active) {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--sidebar-accent) / 0.7) 0%,
+      hsl(var(--sidebar-accent) / 0.4) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  /* Item ATIVO — alto relevo dourado, parece "subindo" da sidebar */
+  .nav-3d-active {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--sidebar-accent)) 0%,
+      hsl(0 0% 9%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+      0 2px 0 rgba(0, 0, 0, 0.55),
+      0 4px 10px rgba(0, 0, 0, 0.35),
+      0 0 0 1px hsl(var(--sidebar-primary) / 0.15);
+  }
+
+  .nav-3d-active:active {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      0 0 0 1px hsl(var(--sidebar-primary) / 0.15);
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:border-accent/20;
+  }
+
+  /* Icon container - orange circle */
+  .icon-container {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center bg-accent/10 text-accent;
+  }
+
+  .icon-container-sm {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center bg-accent/10 text-accent;
+  }
+
+  /* Trend indicators */
+  .trend-up {
+    @apply text-cs-healthy flex items-center gap-1 text-sm font-medium;
+  }
+
+  .trend-down {
+    @apply text-cs-risk flex items-center gap-1 text-sm font-medium;
+  }
+
+  /* Status border left accent */
+  .status-border-left {
+    @apply border-l-4;
+  }
+
+  .status-border-left-risk {
+    @apply border-l-4 border-l-[hsl(var(--cs-risk))];
+  }
+
+  .status-border-left-alert {
+    @apply border-l-4 border-l-[hsl(var(--cs-alert))];
+  }
+
+  .status-border-left-healthy {
+    @apply border-l-4 border-l-[hsl(var(--cs-healthy))];
+  }
+}
+
+/* ===== DARK MODE OVERRIDES =====
+   Remap hardcoded Tailwind colors to dark equivalents when .dark is active.
+   This avoids editing 700+ component instances individually.
+*/
+
+/* --- Neutral backgrounds --- */
+.dark .bg-white { background-color: hsl(222 47% 11%) !important; }
+.dark .bg-slate-50, .dark .bg-slate-100 { background-color: hsl(222 47% 13%) !important; }
+.dark .bg-slate-200 { background-color: hsl(222 47% 16%) !important; }
+.dark .bg-slate-300 { background-color: hsl(222 47% 20%) !important; }
+.dark .bg-gray-50, .dark .bg-gray-100 { background-color: hsl(222 47% 13%) !important; }
+.dark .bg-gray-200 { background-color: hsl(222 47% 16%) !important; }
+
+/* --- Colored -50 and -100 backgrounds (status indicators) → dark tinted --- */
+.dark .bg-red-50 { background-color: hsl(0 40% 14%) !important; }
+.dark .bg-red-100 { background-color: hsl(0 40% 18%) !important; }
+.dark .bg-amber-50, .dark .bg-yellow-50 { background-color: hsl(40 40% 14%) !important; }
+.dark .bg-amber-100, .dark .bg-yellow-100 { background-color: hsl(40 40% 18%) !important; }
+.dark .bg-orange-50 { background-color: hsl(24 40% 14%) !important; }
+.dark .bg-orange-100 { background-color: hsl(24 40% 18%) !important; }
+.dark .bg-green-50, .dark .bg-emerald-50 { background-color: hsl(142 35% 14%) !important; }
+.dark .bg-green-100, .dark .bg-emerald-100 { background-color: hsl(142 35% 18%) !important; }
+.dark .bg-blue-50 { background-color: hsl(217 40% 14%) !important; }
+.dark .bg-blue-100 { background-color: hsl(217 40% 18%) !important; }
+.dark .bg-indigo-50 { background-color: hsl(234 40% 14%) !important; }
+.dark .bg-indigo-100 { background-color: hsl(234 40% 18%) !important; }
+.dark .bg-purple-50, .dark .bg-violet-50 { background-color: hsl(270 35% 14%) !important; }
+.dark .bg-purple-100, .dark .bg-violet-100 { background-color: hsl(270 35% 18%) !important; }
+.dark .bg-cyan-50, .dark .bg-teal-50 { background-color: hsl(180 35% 14%) !important; }
+.dark .bg-cyan-100, .dark .bg-teal-100 { background-color: hsl(180 35% 18%) !important; }
+.dark .bg-pink-50, .dark .bg-rose-50 { background-color: hsl(340 35% 14%) !important; }
+.dark .bg-pink-100, .dark .bg-rose-100 { background-color: hsl(340 35% 18%) !important; }
+
+/* --- Colored text: dark -700/-800 text → lighter equivalents --- */
+.dark .text-red-700, .dark .text-red-800, .dark .text-red-900 { color: hsl(0 80% 70%) !important; }
+.dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900 { color: hsl(40 80% 70%) !important; }
+.dark .text-yellow-700, .dark .text-yellow-800 { color: hsl(45 80% 70%) !important; }
+.dark .text-orange-700, .dark .text-orange-800 { color: hsl(24 80% 70%) !important; }
+.dark .text-green-700, .dark .text-green-800, .dark .text-green-900 { color: hsl(142 60% 65%) !important; }
+.dark .text-emerald-700, .dark .text-emerald-800 { color: hsl(152 60% 65%) !important; }
+.dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900 { color: hsl(217 80% 70%) !important; }
+.dark .text-indigo-700, .dark .text-indigo-800 { color: hsl(234 70% 72%) !important; }
+.dark .text-purple-700, .dark .text-purple-800 { color: hsl(270 65% 72%) !important; }
+.dark .text-violet-700, .dark .text-violet-800 { color: hsl(258 65% 72%) !important; }
+.dark .text-cyan-700, .dark .text-cyan-800 { color: hsl(180 60% 65%) !important; }
+.dark .text-teal-700, .dark .text-teal-800 { color: hsl(170 60% 65%) !important; }
+.dark .text-pink-700, .dark .text-pink-800 { color: hsl(340 65% 72%) !important; }
+.dark .text-rose-700, .dark .text-rose-800 { color: hsl(350 65% 72%) !important; }
+
+/* --- Neutral text --- */
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800 { color: hsl(220 14% 96%) !important; }
+.dark .text-slate-700, .dark .text-gray-700 { color: hsl(220 14% 80%) !important; }
+.dark .text-slate-600, .dark .text-gray-600 { color: hsl(220 14% 70%) !important; }
+.dark .text-slate-500, .dark .text-gray-500 { color: hsl(220 14% 60%) !important; }
+.dark .text-slate-400, .dark .text-gray-400 { color: hsl(220 14% 50%) !important; }
+
+/* --- Borders --- */
+.dark .border-slate-200, .dark .border-slate-100, .dark .border-gray-200, .dark .border-gray-100 { border-color: hsl(222 47% 20%) !important; }
+.dark .border-slate-300, .dark .border-gray-300 { border-color: hsl(222 47% 22%) !important; }
+.dark .border-red-200, .dark .border-red-100 { border-color: hsl(0 30% 25%) !important; }
+.dark .border-amber-200, .dark .border-amber-100, .dark .border-yellow-200 { border-color: hsl(40 30% 25%) !important; }
+.dark .border-green-200, .dark .border-green-100, .dark .border-emerald-200 { border-color: hsl(142 25% 25%) !important; }
+.dark .border-blue-200, .dark .border-blue-100 { border-color: hsl(217 30% 25%) !important; }
+.dark .border-purple-200, .dark .border-violet-200 { border-color: hsl(270 25% 25%) !important; }
+.dark .border-orange-200 { border-color: hsl(24 30% 25%) !important; }
+
+/* --- Dividers --- */
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: hsl(222 47% 20%) !important; }
+
+/* --- Hover states --- */
+.dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover { background-color: hsl(222 47% 16%) !important; }
+.dark .hover\:bg-white:hover { background-color: hsl(222 47% 14%) !important; }
+.dark .hover\:bg-red-50:hover, .dark .hover\:bg-red-100:hover { background-color: hsl(0 40% 18%) !important; }
+.dark .hover\:bg-amber-50:hover, .dark .hover\:bg-amber-100:hover { background-color: hsl(40 40% 18%) !important; }
+.dark .hover\:bg-green-50:hover, .dark .hover\:bg-green-100:hover { background-color: hsl(142 35% 18%) !important; }
+.dark .hover\:bg-blue-50:hover, .dark .hover\:bg-blue-100:hover { background-color: hsl(217 40% 18%) !important; }
+
+/* --- Ring / focus --- */
+.dark .ring-slate-200, .dark .ring-gray-200 { --tw-ring-color: hsl(222 47% 20%) !important; }
+
+/* --- Shadows --- */
+.dark .shadow-sm, .dark .shadow, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
+  --tw-shadow-color: rgba(0, 0, 0, 0.4) !important;
+  --tw-shadow: 0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.3) !important;
+}
+
+/* --- Pipeline column backgrounds with opacity --- */
+.dark .bg-slate-50\/80 { background-color: hsl(222 47% 10% / 0.8) !important; }
+.dark .bg-slate-50\/50 { background-color: hsl(222 47% 10% / 0.5) !important; }
+
+/* --- Placeholder text --- */
+.dark .placeholder\:text-slate-400::placeholder { color: hsl(220 14% 45%) !important; }
+.dark .placeholder\:text-gray-400::placeholder { color: hsl(220 14% 45%) !important; }
+
+/* --- Colored text -600 (medium) → lighter --- */
+.dark .text-red-600 { color: hsl(0 75% 65%) !important; }
+.dark .text-amber-600 { color: hsl(40 75% 65%) !important; }
+.dark .text-orange-600 { color: hsl(24 75% 65%) !important; }
+.dark .text-green-600, .dark .text-emerald-600 { color: hsl(142 55% 60%) !important; }
+.dark .text-blue-600 { color: hsl(217 75% 65%) !important; }
+.dark .text-indigo-600 { color: hsl(234 65% 68%) !important; }
+.dark .text-purple-600, .dark .text-violet-600 { color: hsl(270 60% 68%) !important; }
+.dark .text-cyan-600, .dark .text-teal-600 { color: hsl(180 55% 60%) !important; }
+.dark .text-pink-600, .dark .text-rose-600 { color: hsl(340 60% 68%) !important; }
+
+/* --- Colored text -500 → slightly lighter --- */
+.dark .text-red-500 { color: hsl(0 70% 60%) !important; }
+.dark .text-amber-500 { color: hsl(40 70% 60%) !important; }
+.dark .text-green-500, .dark .text-emerald-500 { color: hsl(142 50% 55%) !important; }
+.dark .text-blue-500 { color: hsl(217 70% 60%) !important; }
+
+/* --- Colored backgrounds -200 (used for tags/badges) --- */
+.dark .bg-red-200 { background-color: hsl(0 35% 22%) !important; }
+.dark .bg-amber-200, .dark .bg-yellow-200 { background-color: hsl(40 35% 22%) !important; }
+.dark .bg-green-200, .dark .bg-emerald-200 { background-color: hsl(142 30% 22%) !important; }
+.dark .bg-blue-200 { background-color: hsl(217 35% 22%) !important; }
+.dark .bg-purple-200, .dark .bg-violet-200 { background-color: hsl(270 30% 22%) !important; }
+.dark .bg-orange-200 { background-color: hsl(24 35% 22%) !important; }
+
+/* --- Muted/50 opacity backgrounds --- */
+.dark .bg-muted\/50 { background-color: hsl(222 47% 13% / 0.5) !important; }
+.dark .bg-gray-50\/50 { background-color: hsl(222 47% 13% / 0.5) !important; }
+
+/* --- Colored backgrounds with opacity variants --- */
+.dark .bg-red-50\/30 { background-color: hsl(0 40% 14% / 0.3) !important; }
+.dark .bg-red-50\/50 { background-color: hsl(0 40% 14% / 0.5) !important; }
+.dark .bg-green-50\/30 { background-color: hsl(142 35% 14% / 0.3) !important; }
+.dark .bg-green-50\/50 { background-color: hsl(142 35% 14% / 0.5) !important; }
+.dark .bg-blue-50\/30 { background-color: hsl(217 40% 14% / 0.3) !important; }
+.dark .bg-blue-50\/50 { background-color: hsl(217 40% 14% / 0.5) !important; }
+.dark .bg-amber-50\/30 { background-color: hsl(40 40% 14% / 0.3) !important; }
+.dark .bg-amber-50\/50 { background-color: hsl(40 40% 14% / 0.5) !important; }
+.dark .bg-orange-50\/30 { background-color: hsl(24 40% 14% / 0.3) !important; }
+.dark .bg-orange-50\/50 { background-color: hsl(24 40% 14% / 0.5) !important; }
+.dark .bg-purple-50\/30, .dark .bg-violet-50\/30 { background-color: hsl(270 35% 14% / 0.3) !important; }
+.dark .bg-emerald-50\/30 { background-color: hsl(142 35% 14% / 0.3) !important; }
+.dark .bg-emerald-50\/50 { background-color: hsl(142 35% 14% / 0.5) !important; }
+.dark .bg-slate-100\/50 { background-color: hsl(222 47% 13% / 0.5) !important; }
+
+/* --- Hover on colored opacity backgrounds --- */
+.dark .hover\:bg-green-50\/50:hover { background-color: hsl(142 35% 16% / 0.5) !important; }
+.dark .hover\:bg-blue-50:hover { background-color: hsl(217 40% 18%) !important; }
+.dark .hover\:bg-red-100:hover { background-color: hsl(0 40% 20%) !important; }
+.dark .hover\:bg-amber-100:hover { background-color: hsl(40 40% 20%) !important; }
+
+/* --- WhatsApp chat background --- */
+.dark .bg-\[\#e5ddd5\] { background-color: hsl(222 47% 8%) !important; }
+
+/* --- Gradients for dark mode --- */
+.dark .bg-gradient-to-br.from-purple-50.to-pink-50 {
+  background: hsl(222 47% 11%) !important;
+}
+.dark .bg-gradient-to-b.from-gray-50.to-white {
+  background: hsl(222 47% 13%) !important;
+}
+.dark .bg-gradient-to-br.from-green-50 {
+  background: hsl(142 35% 12%) !important;
+}
+.dark .bg-gradient-to-br.from-blue-50 {
+  background: hsl(217 40% 12%) !important;
+}
+
+/* --- data-state active tabs in dark mode --- */
+.dark .data-\[state\=active\]\:bg-white[data-state="active"] {
+  background-color: hsl(222 47% 16%) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+/* Sidebar — pulse ring sutil para badges (respeita prefers-reduced-motion) */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 hsl(var(--sidebar-primary) / 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px hsl(var(--sidebar-primary) / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--sidebar-primary) / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[pulse-ring_2\.5s_ease-out_infinite\] {
+    animation: none !important;
+  }
+}

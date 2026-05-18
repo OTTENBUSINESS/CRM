@@ -1,0 +1,2 @@
+/c/:slug   https://YOUR_PROJECT_REF.supabase.co/functions/v1/community-redirect?s=:slug   302!
+/*    /index.html   200

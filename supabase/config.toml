@@ -1,0 +1,183 @@
+# Supabase project config
+# Este arquivo define config por função. O default do Supabase é verify_jwt = true.
+# Só listamos aqui as funções que PRECISAM ficar com verify_jwt = false.
+#
+# CLASSIFICAÇÃO:
+# 1. WEBHOOKS — quem chama é sistema externo (não manda JWT do Supabase)
+# 2. ENDPOINTS PÚBLICOS — chamados por páginas sem login (quiz, NPS, PWA evento)
+# 3. CRONS / SCHEDULERS — chamados pelo pg_cron/scheduler sem user context
+#
+# REGRA DE OURO:
+# - Default (não listado aqui) = verify_jwt = true (seguro por padrão)
+# - Se função precisa ser pública → listar abaixo na categoria correta
+# - Se desativa JWT, precisa implementar auth custom (API key, HMAC, validação interna)
+
+project_id = "seu-projeto-aqui"
+
+# ============================================================
+# WEBHOOKS EXTERNOS — JWT não se aplica (fontes externas)
+# ============================================================
+
+[functions.asaas-webhook]
+verify_jwt = false
+
+[functions.wavoip-webhook]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-cloud-webhook]
+verify_jwt = false
+
+[functions.webinar-webhook]
+verify_jwt = false
+
+[functions.instagram-webhook]
+verify_jwt = false
+
+[functions.google-calendar-webhook]
+verify_jwt = false
+
+[functions.proxy-pain-webhook]
+verify_jwt = false
+
+# ============================================================
+# ENDPOINTS PÚBLICOS — chamados por páginas sem auth CRM
+# ============================================================
+
+# Quiz/formulários públicos (landing pages, /vaga, /onboarding, /pain)
+[functions.quiz-api]
+verify_jwt = false
+
+# PWA do participante de evento (auth próprio via session token)
+[functions.event-app-auth]
+verify_jwt = false
+
+[functions.event-app-actions]
+verify_jwt = false
+
+# Página pública de agendamento (/agendar)
+[functions.book-meeting]
+verify_jwt = false
+
+# Página pública de NPS (/nps/:token)
+[functions.submit-nps-response]
+verify_jwt = false
+
+# Página pública de confirmação de webinar
+[functions.send-webinar-confirmation]
+verify_jwt = false
+
+# Roleplay (usa client secret OpenAI, não auth CRM)
+[functions.roleplay-session]
+verify_jwt = false
+
+[functions.roleplay-evaluate]
+verify_jwt = false
+
+# Health check (endpoint de status)
+[functions.health-check]
+verify_jwt = false
+
+# ============================================================
+# CRONS / SCHEDULERS — chamados pelo pg_cron sem user context
+# ============================================================
+
+# Agentes IA automáticos
+[functions.ai-sales-agent]
+verify_jwt = false
+
+[functions.ceo-whatsapp-bot]
+verify_jwt = false
+
+[functions.content-whatsapp-bot]
+verify_jwt = false
+
+# Lembretes e follow-ups automáticos
+[functions.process-task-reminders]
+verify_jwt = false
+
+[functions.process-noshow-followup]
+verify_jwt = false
+
+[functions.process-touchpoint-followups]
+verify_jwt = false
+
+[functions.process-notification-event]
+verify_jwt = false
+
+[functions.process-notification-rules]
+verify_jwt = false
+
+[functions.process-automation-rules]
+verify_jwt = false
+
+# Verificadores automáticos
+[functions.check-hot-leads]
+verify_jwt = false
+
+[functions.check-sales-alerts]
+verify_jwt = false
+
+[functions.check-pending-meetings]
+verify_jwt = false
+
+# Resumos e briefings diários
+[functions.daily-sales-digest]
+verify_jwt = false
+
+[functions.cs-ai-daily-briefing]
+verify_jwt = false
+
+# Tasks periódicas
+[functions.schedule-nps-surveys]
+verify_jwt = false
+
+[functions.calculate-health-scores]
+verify_jwt = false
+
+[functions.renew-calendar-watches]
+verify_jwt = false
+
+[functions.migrate-profile-photos]
+verify_jwt = false
+
+# Syncs periódicos
+[functions.sync-instagram-messages]
+verify_jwt = false
+
+[functions.sync-missed-messages]
+verify_jwt = false
+
+[functions.sync-whatsapp-groups]
+verify_jwt = false
+
+[functions.sync-whatsapp-status]
+verify_jwt = false
+
+[functions.sync-member-data]
+verify_jwt = false
+
+[functions.scrape-instagram-profile]
+verify_jwt = false
+
+[functions.batch-fetch-avatars]
+verify_jwt = false
+
+# Asaas sync (cron pull)
+[functions.asaas-sync-payments]
+verify_jwt = false
+
+# ============================================================
+# DEFAULT (verify_jwt = true) — não listadas aqui
+# ============================================================
+# Todas as outras funções (~40) herdam o default `verify_jwt = true`,
+# ou seja: só usuário logado consegue chamar.
+#
+# Exemplos: analyze-sales-call, analyze-conversation, generate-*,
+# extract-*, coach-suggestion, calculate-commission, manage-team-member,
+# send-whatsapp-cloud, create-calendar-event, chat-manager, etc.
+#
+# ⚠️ IMPORTANTE: Ao criar função nova, SEMPRE deixar com default (true)
+# a não ser que ela seja webhook, público ou cron.
