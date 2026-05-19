@@ -69,8 +69,13 @@ function AmbientOrb({ color, x, y, size, delay }: {
 /* ─── Main Login Page ───────────────────────────────────────── */
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+
+  // Redirecionar automaticamente se já estiver logado (evita loop de redirect)
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [user, navigate]);
 
   const ROLES = [
     { value: 'vendedor',     label: 'Vendedor' },

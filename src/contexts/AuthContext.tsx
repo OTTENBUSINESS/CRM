@@ -198,7 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Atualizar estado imediatamente para evitar race condition com navigate()
+    // (onAuthStateChange SIGNED_IN dispara assincronamente DEPOIS do await retornar)
+    if (!error && data.user && data.session) {
+      setUser(data.user);
+      setSession(data.session);
+    }
     return { error: error as Error | null };
   };
 
