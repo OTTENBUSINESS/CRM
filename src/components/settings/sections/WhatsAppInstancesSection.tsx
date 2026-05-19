@@ -275,29 +275,45 @@ export function WhatsAppInstancesSection() {
       return;
     }
 
-    // === Evolution API (manual) ===
+    // === Evolution API ===
     if (createMode === "evolution") {
       if (!newApiUrl.trim() || !newApiKey.trim()) {
         toast({ title: "Preencha a URL e a API Key", variant: "destructive" });
         return;
       }
       setIsCreating(true);
+      const baseUrl = newApiUrl.trim().replace(/\/$/, "");
+      const instanceName = newName.trim();
       try {
+        // 1. Criar instância no servidor Evolution API
+        const createRes = await fetch(`${baseUrl}/instance/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": newApiKey.trim() },
+          body: JSON.stringify({ instanceName, qrcode: false, integration: "WHATSAPP-BAILEYS" }),
+        });
+        if (!createRes.ok) {
+          const errData = await createRes.json().catch(() => ({}));
+          // 409 = já existe — não é erro, continua
+          if (createRes.status !== 409) {
+            throw new Error(errData?.message?.[0] || errData?.error || `HTTP ${createRes.status}`);
+          }
+        }
+        // 2. Salvar no banco do CRM
         await supabase.from("whatsapp_instances").insert({
-          name: newName.trim(),
-          api_url: newApiUrl.trim().replace(/\/$/, ""),
-          webhook_url: newApiUrl.trim().replace(/\/$/, ""),
+          name: instanceName,
+          api_url: baseUrl,
+          webhook_url: baseUrl,
           api_key: newApiKey.trim(),
           teams: [newTeam],
           status: "disconnected",
-          metadata: { provider: "evolution", webhook_url: WEBHOOK_URL },
+          metadata: { provider: "evolution" },
         });
-        toast({ title: "Instância salva! 🎉", description: "Gere o QR Code e configure o Webhook." });
+        toast({ title: "Instância criada! 🎉", description: "Agora gere o QR Code e configure o Webhook." });
         setIsCreateOpen(false);
         setNewName(""); setNewApiUrl(""); setNewApiKey(""); setCreateMode("uazapi");
         fetchData();
       } catch (error: any) {
-        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao criar instância", description: error.message, variant: "destructive" });
       } finally {
         setIsCreating(false);
       }
