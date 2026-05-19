@@ -88,6 +88,10 @@ export function WhatsAppInstancesSection() {
   const [newName, setNewName] = useState("");
   const [newTeam, setNewTeam] = useState("comercial");
   const [isCreating, setIsCreating] = useState(false);
+  // Evolution API manual mode
+  const [createMode, setCreateMode] = useState<"uazapi" | "evolution">("uazapi");
+  const [newApiUrl, setNewApiUrl] = useState("");
+  const [newApiKey, setNewApiKey] = useState("");
 
   // QR Code modal
   const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -129,24 +133,48 @@ export function WhatsAppInstancesSection() {
   };
 
   // === STATUS ===
+  const isEvolutionApi = (inst: WhatsAppInstance) => {
+    const url = inst.api_url || inst.webhook_url || "";
+    return !!url && !url.includes("uazapi");
+  };
+
   const fetchStatus = async (inst: WhatsAppInstance) => {
     const url = inst.api_url || inst.webhook_url;
     if (!url || !inst.api_key) return;
     setRefreshingId(inst.id);
     try {
-      const res = await fetch(`${url}/instance/status`, { headers: { token: inst.api_key } });
-      if (res.status === 401) {
-        toast({
-          title: `Token inválido — ${inst.name}`,
-          description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
-          variant: "destructive",
+      let connected = false;
+      if (isEvolutionApi(inst)) {
+        // Evolution API: GET /instance/connectionState/{name}
+        const res = await fetch(`${url}/instance/connectionState/${encodeURIComponent(inst.name)}`, {
+          headers: { apikey: inst.api_key },
         });
-        setStatusMap((prev) => ({ ...prev, [inst.id]: null }));
-        return;
+        if (res.status === 401 || res.status === 403) {
+          toast({ title: `Token inválido — ${inst.name}`, description: "Verifique a API Key da instância.", variant: "destructive" });
+          setStatusMap((prev) => ({ ...prev, [inst.id]: null }));
+          return;
+        }
+        const data = await res.json();
+        const state = data.instance?.state || data.state;
+        connected = state === "open";
+        setStatusMap((prev) => ({ ...prev, [inst.id]: { status: { connected }, instance: { profileName: "" } } }));
+      } else {
+        // UAZAPI
+        const res = await fetch(`${url}/instance/status`, { headers: { token: inst.api_key } });
+        if (res.status === 401) {
+          toast({
+            title: `Token inválido — ${inst.name}`,
+            description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
+            variant: "destructive",
+          });
+          setStatusMap((prev) => ({ ...prev, [inst.id]: null }));
+          return;
+        }
+        const data = await res.json();
+        setStatusMap((prev) => ({ ...prev, [inst.id]: data }));
+        connected = !!data.status?.connected;
       }
-      const data = await res.json();
-      setStatusMap((prev) => ({ ...prev, [inst.id]: data }));
-      const newStatus = data.status?.connected ? "connected" : "disconnected";
+      const newStatus = connected ? "connected" : "disconnected";
       if (inst.status !== newStatus) {
         await supabase.from("whatsapp_instances").update({ status: newStatus }).eq("id", inst.id);
         fetchData();
@@ -167,42 +195,67 @@ export function WhatsAppInstancesSection() {
     }
     setRefreshingId(inst.id);
     try {
-      const res = await fetch(`${url}/instance/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: inst.api_key },
-      });
-      if (res.status === 401) {
-        toast({
-          title: `Token inválido — ${inst.name}`,
-          description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
-          variant: "destructive",
+      if (isEvolutionApi(inst)) {
+        // Evolution API: GET /instance/connect/{name} retorna base64 do QR
+        const res = await fetch(`${url}/instance/connect/${encodeURIComponent(inst.name)}`, {
+          headers: { apikey: inst.api_key },
         });
-        return;
-      }
-      const data = await res.json();
-      const qrcode = data.instance?.qrcode || data.qrcode;
-      if (qrcode) {
-        setStatusMap((prev) => ({
-          ...prev,
-          [inst.id]: {
-            status: data.status || { connected: false },
-            instance: { qrcode, profileName: data.instance?.profileName || "" },
-          },
-        }));
-        // Abre modal com QR grande
-        setQrModalData({ name: inst.name, qrcode });
-        setQrModalOpen(true);
-        toast({ title: "QR Code gerado — escaneie com o WhatsApp" });
-      } else if (data.status?.connected) {
-        setStatusMap((prev) => ({
-          ...prev,
-          [inst.id]: { status: { connected: true }, instance: data.instance },
-        }));
-        await supabase.from("whatsapp_instances").update({ status: "connected" }).eq("id", inst.id);
-        toast({ title: "WhatsApp já conectado! ✅" });
-        fetchData();
+        if (!res.ok) {
+          toast({ title: `Erro ao gerar QR (${res.status})`, description: "Verifique a instância no painel Evolution API.", variant: "destructive" });
+          return;
+        }
+        const data = await res.json();
+        const base64 = data.base64 || data.qrcode?.base64 || data.code;
+        if (base64) {
+          const qrSrc = base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
+          setQrModalData({ name: inst.name, qrcode: qrSrc });
+          setQrModalOpen(true);
+          toast({ title: "QR Code gerado — escaneie com o WhatsApp" });
+        } else if (data.instance?.state === "open") {
+          await supabase.from("whatsapp_instances").update({ status: "connected" }).eq("id", inst.id);
+          toast({ title: "WhatsApp já conectado! ✅" });
+          fetchData();
+        } else {
+          toast({ title: "QR não disponível", description: "Aguarde alguns segundos e tente novamente." });
+        }
       } else {
-        toast({ title: "Conectando... tente gerar o QR novamente em alguns segundos" });
+        // UAZAPI
+        const res = await fetch(`${url}/instance/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: inst.api_key },
+        });
+        if (res.status === 401) {
+          toast({
+            title: `Token inválido — ${inst.name}`,
+            description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const data = await res.json();
+        const qrcode = data.instance?.qrcode || data.qrcode;
+        if (qrcode) {
+          setStatusMap((prev) => ({
+            ...prev,
+            [inst.id]: {
+              status: data.status || { connected: false },
+              instance: { qrcode, profileName: data.instance?.profileName || "" },
+            },
+          }));
+          setQrModalData({ name: inst.name, qrcode });
+          setQrModalOpen(true);
+          toast({ title: "QR Code gerado — escaneie com o WhatsApp" });
+        } else if (data.status?.connected) {
+          setStatusMap((prev) => ({
+            ...prev,
+            [inst.id]: { status: { connected: true }, instance: data.instance },
+          }));
+          await supabase.from("whatsapp_instances").update({ status: "connected" }).eq("id", inst.id);
+          toast({ title: "WhatsApp já conectado! ✅" });
+          fetchData();
+        } else {
+          toast({ title: "Conectando... tente gerar o QR novamente em alguns segundos" });
+        }
       }
     } catch {
       toast({ title: "Erro ao conectar", variant: "destructive" });
@@ -217,11 +270,42 @@ export function WhatsAppInstancesSection() {
 
   // === CREATE ===
   const handleCreate = async () => {
-    if (!uazapi) return;
     if (!newName.trim()) {
       toast({ title: "Digite um nome", variant: "destructive" });
       return;
     }
+
+    // === Evolution API (manual) ===
+    if (createMode === "evolution") {
+      if (!newApiUrl.trim() || !newApiKey.trim()) {
+        toast({ title: "Preencha a URL e a API Key", variant: "destructive" });
+        return;
+      }
+      setIsCreating(true);
+      try {
+        await supabase.from("whatsapp_instances").insert({
+          name: newName.trim(),
+          api_url: newApiUrl.trim().replace(/\/$/, ""),
+          webhook_url: newApiUrl.trim().replace(/\/$/, ""),
+          api_key: newApiKey.trim(),
+          teams: [newTeam],
+          status: "disconnected",
+          metadata: { provider: "evolution", webhook_url: WEBHOOK_URL },
+        });
+        toast({ title: "Instância salva! 🎉", description: "Gere o QR Code e configure o Webhook." });
+        setIsCreateOpen(false);
+        setNewName(""); setNewApiUrl(""); setNewApiKey(""); setCreateMode("uazapi");
+        fetchData();
+      } catch (error: any) {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } finally {
+        setIsCreating(false);
+      }
+      return;
+    }
+
+    // === UAZAPI ===
+    if (!uazapi) return;
     setIsCreating(true);
     try {
       // UAZAPI usa /instance/init como endpoint oficial (o /instance/create \u00e9 legado).
@@ -280,18 +364,34 @@ export function WhatsAppInstancesSection() {
     }
     setRefreshingId(inst.id);
     try {
-      const res = await fetch(`${url}/webhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: inst.api_key },
-        body: JSON.stringify({
-          url: WEBHOOK_URL,
-          events: ["messages", "messages_update", "connection", "groups", "contacts", "call", "chats"],
-          excludeMessages: ["wasSentByApi"],
-          addUrlEvents: true,
-        }),
-      });
+      let res: Response;
+      if (isEvolutionApi(inst)) {
+        // Evolution API: POST /webhook/set/{instanceName}
+        res = await fetch(`${url}/webhook/set/${encodeURIComponent(inst.name)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: inst.api_key },
+          body: JSON.stringify({
+            url: WEBHOOK_URL,
+            webhook_by_events: false,
+            webhook_base64: false,
+            events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
+          }),
+        });
+      } else {
+        // UAZAPI
+        res = await fetch(`${url}/webhook`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", token: inst.api_key },
+          body: JSON.stringify({
+            url: WEBHOOK_URL,
+            events: ["messages", "messages_update", "connection", "groups", "contacts", "call", "chats"],
+            excludeMessages: ["wasSentByApi"],
+            addUrlEvents: true,
+          }),
+        });
+      }
       if (res.ok) {
-        toast({ title: "✅ Webhook configurado!", description: "O UAZAPI irá enviar eventos para o CRM agora." });
+        toast({ title: "✅ Webhook configurado!", description: "O servidor irá enviar eventos para o CRM agora." });
       } else {
         const txt = await res.text().catch(() => "");
         toast({ title: `Webhook: erro ${res.status}`, description: txt.slice(0, 120) || "Tente novamente", variant: "destructive" });
@@ -378,7 +478,7 @@ export function WhatsAppInstancesSection() {
             <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
             Atualizar
           </Button>
-          <Button size="sm" onClick={() => setIsCreateOpen(true)} disabled={!uazapi}>
+          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Instância
           </Button>
@@ -394,11 +494,9 @@ export function WhatsAppInstancesSection() {
             <p className="text-xs text-muted-foreground mb-4">
               {uazapi ? "Crie sua primeira instância" : "Configure o UAZAPI primeiro"}
             </p>
-            {uazapi && (
-              <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Criar Primeira Instância
-              </Button>
-            )}
+            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Criar Primeira Instância
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -620,47 +718,131 @@ export function WhatsAppInstancesSection() {
       </Dialog>
 
       {/* === CREATE MODAL === */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(o) => { setIsCreateOpen(o); if (!o) { setCreateMode("uazapi"); setNewName(""); setNewApiUrl(""); setNewApiKey(""); } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Nova Instância WhatsApp</DialogTitle>
-            <DialogDescription>
-              Criada automaticamente no UAZAPI. Webhook e token configurados sozinhos.
-            </DialogDescription>
+            <DialogDescription>Escolha o servidor que vai gerenciar o número.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Tipo de servidor */}
             <div className="space-y-2">
-              <Label htmlFor="inst-name">Nome da instância</Label>
+              <Label>Servidor</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={createMode === "uazapi" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setCreateMode("uazapi")}
+                >
+                  UAZAPI
+                </Button>
+                <Button
+                  type="button"
+                  variant={createMode === "evolution" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setCreateMode("evolution")}
+                >
+                  Evolution API
+                </Button>
+              </div>
+            </div>
+
+            {/* Nome */}
+            <div className="space-y-2">
+              <Label htmlFor="inst-name">
+                {createMode === "evolution" ? "Nome da instância (deve bater com o nome no Evolution API)" : "Nome da instância"}
+              </Label>
               <Input
                 id="inst-name"
-                placeholder="Ex: Comercial, Suporte, CS..."
+                placeholder="Ex: otten-suporte, comercial..."
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <Label>Time</Label>
-              <Select value={newTeam} onValueChange={setNewTeam}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="comercial">Comercial</SelectItem>
-                  <SelectItem value="cs">Customer Success</SelectItem>
-                  <SelectItem value="suporte">Suporte</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="p-2.5 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
-              <p>✅ Token gerado automaticamente</p>
-              <p>✅ Webhook configurado para receber mensagens</p>
-            </div>
+
+            {/* Evolution API extra fields */}
+            {createMode === "evolution" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="inst-url">URL do servidor Evolution API</Label>
+                  <Input
+                    id="inst-url"
+                    placeholder="https://seu-servidor.railway.app"
+                    value={newApiUrl}
+                    onChange={(e) => setNewApiUrl(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inst-key">API Key (AUTHENTICATION_API_KEY)</Label>
+                  <Input
+                    id="inst-key"
+                    placeholder="sua-api-key-aqui"
+                    value={newApiKey}
+                    onChange={(e) => setNewApiKey(e.target.value)}
+                  />
+                </div>
+                <div className="p-2.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs text-muted-foreground space-y-1">
+                  <p>💡 Após salvar: clique em <strong>Gerar QR Code</strong> para conectar o número e em <strong>Configurar Webhook</strong> para ativar o recebimento de mensagens.</p>
+                </div>
+              </>
+            )}
+
+            {/* UAZAPI info */}
+            {createMode === "uazapi" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Time</Label>
+                  <Select value={newTeam} onValueChange={setNewTeam}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="comercial">Comercial</SelectItem>
+                      <SelectItem value="cs">Customer Success</SelectItem>
+                      <SelectItem value="suporte">Suporte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!uazapi && (
+                  <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700">
+                    ⚠️ Configure o UAZAPI em <a href="/configuracoes?s=api-keys" className="underline">Chaves de API</a> primeiro, ou use o modo Evolution API.
+                  </div>
+                )}
+                {uazapi && (
+                  <div className="p-2.5 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
+                    <p>✅ Token gerado automaticamente</p>
+                    <p>✅ Webhook configurado para receber mensagens</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Team selector for Evolution API too */}
+            {createMode === "evolution" && (
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Select value={newTeam} onValueChange={setNewTeam}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="comercial">Comercial</SelectItem>
+                    <SelectItem value="cs">Customer Success</SelectItem>
+                    <SelectItem value="suporte">Suporte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={isCreating || !newName.trim()}>
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating || !newName.trim() || (createMode === "uazapi" && !uazapi)}
+            >
               {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Criar
+              {createMode === "evolution" ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>

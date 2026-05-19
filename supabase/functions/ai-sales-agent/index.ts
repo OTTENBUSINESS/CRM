@@ -353,6 +353,7 @@ interface Lead {
 
 interface WhatsAppInstance {
   id: string;
+  name: string;
   api_key: string;
   api_url: string;
   metadata?: Record<string, any>;
@@ -993,17 +994,20 @@ async function notifyWhatsAppDisconnected(supabase: any, disconnectedInstance: W
 
     // Enviar para grupo TIME - IAP
     const groupJid = '120363421838905056@g.us';
-    await fetch(`${carolInstance.api_url}/send/text`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'token': carolInstance.api_key,
-      },
-      body: JSON.stringify({
-        number: groupJid,
-        text: alertMsg,
-      }),
-    });
+    const alertIsEvolution = carolInstance.api_url && !carolInstance.api_url.includes('uazapi');
+    const alertInstName = encodeURIComponent(carolInstance.name || '');
+    await fetch(
+      alertIsEvolution
+        ? `${carolInstance.api_url}/message/sendText/${alertInstName}`
+        : `${carolInstance.api_url}/send/text`,
+      {
+        method: 'POST',
+        headers: alertIsEvolution
+          ? { 'Content-Type': 'application/json', 'apikey': carolInstance.api_key }
+          : { 'Content-Type': 'application/json', 'token': carolInstance.api_key },
+        body: JSON.stringify({ number: groupJid, text: alertMsg }),
+      }
+    );
 
     console.log('🚨 Alerta de WhatsApp desconectado enviado para TIME - IAP');
   } catch (err: any) {
@@ -1076,45 +1080,64 @@ async function sendWhatsAppMessage(
       return await sendViaCloudAPI(instance, phone, message, supabaseClient, leadId);
     }
 
-    // ===== UAZAPI (instância não-oficial) =====
+    // Detectar provider pelo api_url (UAZAPI vs Evolution API)
+    const isEvolutionApi = instance.api_url && !instance.api_url.includes('uazapi');
     const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
     const cleanPhone = phone.replace('@s.whatsapp.net', '').replace(/[^0-9]/g, '');
 
-    // Simular "digitando..."
-    if (simulateTyping) {
-      await fetch(`${instance.api_url}/chat/presence`, {
+    let response: Response;
+
+    if (isEvolutionApi) {
+      // ===== Evolution API =====
+      const instanceName = encodeURIComponent(instance.name || '');
+      response = await fetch(`${instance.api_url}/message/sendText/${instanceName}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "apikey": instance.api_key,
+        },
+        body: JSON.stringify({
+          number: cleanPhone,
+          text: message,
+        }),
+      });
+    } else {
+      // ===== UAZAPI =====
+      // Simular "digitando..."
+      if (simulateTyping) {
+        await fetch(`${instance.api_url}/chat/presence`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "token": instance.api_key,
+          },
+          body: JSON.stringify({
+            number: formattedPhone,
+            presence: "composing",
+          }),
+        }).catch(() => {}); // Ignora erros de presence
+      }
+
+      response = await fetch(`${instance.api_url}/send/text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
           "token": instance.api_key,
         },
         body: JSON.stringify({
           number: formattedPhone,
-          presence: "composing",
+          text: message,
         }),
-      }).catch(() => {}); // Ignora erros de presence
+      });
     }
-
-    // Enviar mensagem
-    const response = await fetch(`${instance.api_url}/send/text`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "token": instance.api_key,
-      },
-      body: JSON.stringify({
-        number: formattedPhone,
-        text: message,
-      }),
-    });
 
     const result = await response.json();
     console.log("📤 Mensagem enviada:", result);
 
     if (!response.ok || result.error) {
       const errorMsg = result.error || result.message || `HTTP ${response.status}`;
-      console.error("❌ Erro UAZAPI:", errorMsg);
+      console.error(`❌ Erro ${isEvolutionApi ? 'Evolution API' : 'UAZAPI'}:`, errorMsg);
       return { ok: false, error: errorMsg };
     }
 
@@ -3365,11 +3388,20 @@ async function executeTool(
 
             // Enviar para grupo TIME - IAP
             const groupJid = '120363421838905056@g.us';
-            await fetch(`${carolInstance.api_url}/send/text`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'token': carolInstance.api_key },
-              body: JSON.stringify({ number: groupJid, text: alertMsg }),
-            });
+            const carolIsEvolution = carolInstance.api_url && !carolInstance.api_url.includes('uazapi');
+            const carolInstName = encodeURIComponent(carolInstance.name || '');
+            await fetch(
+              carolIsEvolution
+                ? `${carolInstance.api_url}/message/sendText/${carolInstName}`
+                : `${carolInstance.api_url}/send/text`,
+              {
+                method: 'POST',
+                headers: carolIsEvolution
+                  ? { 'Content-Type': 'application/json', 'apikey': carolInstance.api_key }
+                  : { 'Content-Type': 'application/json', 'token': carolInstance.api_key },
+                body: JSON.stringify({ number: groupJid, text: alertMsg }),
+              }
+            );
 
             // Enviar para vendedor responsável (privado)
             if (responsavelId) {
@@ -3380,11 +3412,21 @@ async function executeTool(
                 .single();
               if (repMember?.phone) {
                 const privateMsg = `${urgencyEmoji} *${lead.name}* precisa de atendimento AGORA.\n\nMotivo: ${args.reason}\n\nA IA pausou a conversa. Abra o inbox e responda.`;
-                await fetch(`${carolInstance.api_url}/send/text`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'token': carolInstance.api_key },
-                  body: JSON.stringify({ number: `${repMember.phone}@s.whatsapp.net`, text: privateMsg }),
-                });
+                const repPhone = carolIsEvolution
+                  ? repMember.phone.replace(/\D/g, '')
+                  : `${repMember.phone}@s.whatsapp.net`;
+                await fetch(
+                  carolIsEvolution
+                    ? `${carolInstance.api_url}/message/sendText/${carolInstName}`
+                    : `${carolInstance.api_url}/send/text`,
+                  {
+                    method: 'POST',
+                    headers: carolIsEvolution
+                      ? { 'Content-Type': 'application/json', 'apikey': carolInstance.api_key }
+                      : { 'Content-Type': 'application/json', 'token': carolInstance.api_key },
+                    body: JSON.stringify({ number: repPhone, text: privateMsg }),
+                  }
+                );
               }
             }
           }

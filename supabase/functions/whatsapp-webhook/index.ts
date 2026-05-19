@@ -2,6 +2,114 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+/**
+ * Normaliza payload da Evolution API para o formato interno (UAZAPI-like).
+ * Evolution API usa nomes de evento com ponto (messages.upsert, connection.update)
+ * e estrutura aninhada com data.key.remoteJid.
+ * Retorna payload com EventType='skip' para mensagens enviadas via API (ignorar eco).
+ */
+function normalizeWebhookPayload(raw: any): any {
+  const rawEvent = raw.event;
+  // Não é Evolution API se não tiver evento com ponto
+  if (!rawEvent || typeof rawEvent !== 'string' || !rawEvent.includes('.')) {
+    return raw;
+  }
+
+  console.log('[Webhook] Evolution API payload detectado, normalizando:', rawEvent);
+
+  const data = raw.data || {};
+  const key = data.key || {};
+  const message = data.message || {};
+
+  const evMap: Record<string, string> = {
+    'messages.upsert': 'messages',
+    'messages.update': 'messages_update',
+    'connection.update': 'connection',
+    'send.message': 'skip',   // eco de mensagem enviada via API — ignorar
+    'messages.set': 'skip',   // histórico ao conectar — ignorar
+  };
+
+  const mapped = evMap[rawEvent];
+  if (!mapped) return { ...raw, EventType: rawEvent };
+  if (mapped === 'skip') return { EventType: 'skip' };
+
+  if (rawEvent === 'messages.upsert') {
+    // Ignorar mensagens enviadas pela própria API
+    if (key.fromMe && (data.source === 'api' || raw.destination)) {
+      return { EventType: 'skip' };
+    }
+
+    const text = message.conversation
+      || message.extendedTextMessage?.text
+      || message.imageMessage?.caption
+      || message.videoMessage?.caption
+      || message.documentMessage?.caption
+      || '';
+
+    const messageType = data.messageType || Object.keys(message)[0] || 'conversation';
+    const mediaMsg: any = message.imageMessage || message.videoMessage
+      || message.audioMessage || message.documentMessage || {};
+
+    return {
+      EventType: 'messages',
+      instance: raw.instance,
+      apikey: raw.apikey,
+      event: {
+        message: {
+          id: key.id,
+          chatid: key.remoteJid,
+          fromMe: key.fromMe ?? false,
+          isGroup: key.remoteJid?.includes('@g.us') ?? false,
+          sender: key.remoteJid,
+          senderName: data.pushName || '',
+          messageType,
+          content: {
+            text,
+            type: messageType,
+            URL: mediaMsg.url || '',
+            mimetype: mediaMsg.mimetype || '',
+            mediaKey: mediaMsg.mediaKey || '',
+            fileSHA256: mediaMsg.fileSHA256 || '',
+            fileEncSHA256: mediaMsg.fileEncSHA256 || '',
+            fileLength: Number(mediaMsg.fileLength || 0),
+            PTT: !!message.audioMessage?.ptt,
+          },
+        }
+      }
+    };
+  }
+
+  if (rawEvent === 'connection.update') {
+    const state = data.state || '';
+    const stateMap: Record<string, string> = {
+      'open': 'connected',
+      'close': 'disconnected',
+      'connecting': 'connecting',
+    };
+    return {
+      EventType: 'connection',
+      instance: raw.instance,
+      apikey: raw.apikey,
+      _evolutionState: state,  // preservado para handleConnectionChange
+      event: {
+        connection: stateMap[state] || state,
+        status: stateMap[state] || state,
+      }
+    };
+  }
+
+  if (rawEvent === 'messages.update') {
+    return {
+      EventType: 'messages_update',
+      instance: raw.instance,
+      apikey: raw.apikey,
+      event: data,
+    };
+  }
+
+  return { ...raw, EventType: mapped };
+}
+
 import { MediaData, downloadAndSaveMedia, downloadAndDecryptAudio, transcribeAudioFromBase64, getExtensionFromMimetype, describeImageViaGemini } from "./media.ts";
 import { callTicketRouterLLM, TicketDecisionAction } from "./llm.ts";
 import { getOrCreateContactWithProfilePic } from "./contacts.ts";
@@ -31,7 +139,15 @@ serve(async (req: Request) => {
     OPENAI_API_KEY = await getIntegrationKey(supabase, 'OPENAI_API_KEY'); // Whisper (preferido)
     GEMINI_API_KEY = await getIntegrationKey(supabase, 'GEMINI_API_KEY'); // Gemini multimodal (fallback)
 
-    const payload = await req.json();
+    const rawPayload = await req.json();
+    const payload = normalizeWebhookPayload(rawPayload);
+
+    // Ignorar eventos marcados como skip (eco de API, histórico inicial, etc.)
+    if (payload.EventType === 'skip') {
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // UAZAPI com addUrlEvents=true manda o tipo na URL (?event=connection)
     const url = new URL(req.url);
@@ -1095,10 +1211,19 @@ async function handleConnectionChange(supabase: any, instanceId: string, payload
   const previousStatus = instance.status;
   const instanceName = instance.name || instanceId;
 
-  // FONTE DA VERDADE: consultar /instance/status da UAZAPI em vez de
-  // confiar no payload (formato muda entre versoes UAZAPI).
+  // Determinar status real da instância
   let mappedStatus: string = previousStatus;
-  if (instance.api_url && instance.api_key) {
+  const isEvolutionApi = instance.api_url && !instance.api_url.includes('uazapi');
+
+  if (isEvolutionApi && (payload as any)._evolutionState !== undefined) {
+    // Evolution API: usa estado do payload diretamente (já normalizado)
+    const stateMap: Record<string, string> = {
+      'open': 'connected', 'close': 'disconnected', 'connecting': 'connecting',
+    };
+    mappedStatus = stateMap[(payload as any)._evolutionState] || previousStatus;
+    console.log('[Webhook] Evolution API state:', (payload as any)._evolutionState, '→', mappedStatus);
+  } else if (instance.api_url && instance.api_key) {
+    // UAZAPI: consultar /instance/status como fonte da verdade
     try {
       const statusRes = await fetch(`${instance.api_url}/instance/status`, {
         headers: { token: instance.api_key },
