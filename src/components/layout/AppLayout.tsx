@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { NotificationBell } from "./NotificationBell";
 import { MuteNotificationsToggle } from "@/components/inbox/MuteNotificationsToggle";
 import { TaskReminderOverlay } from "@/components/tasks/TaskReminderOverlay";
+import { TaskAutoLauncher } from "@/components/tasks/TaskAutoLauncher";
 import { AITransferAlertOverlay } from "@/components/inbox/AITransferAlertOverlay";
 import { WhatsAppDisconnectedAlert } from "@/components/inbox/WhatsAppDisconnectedAlert";
 import { InstanceHealthHeaderBadge } from "@/components/inbox/InstanceHealthBanner";
@@ -101,6 +102,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider>
       {/* Alertas visuais globais */}
       <TaskReminderOverlay />
+      <TaskAutoLauncher />
       <AITransferAlertOverlay />
       <div className="min-h-screen flex w-full bg-background overflow-hidden">
         <AppSidebar />
