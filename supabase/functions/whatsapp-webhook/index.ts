@@ -10,14 +10,22 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  */
 function normalizeWebhookPayload(raw: any): any {
   const rawEvent = raw.event;
-  // Não é Evolution API se não tiver evento com ponto
-  if (!rawEvent || typeof rawEvent !== 'string' || !rawEvent.includes('.')) {
+  if (!rawEvent || typeof rawEvent !== 'string') return raw;
+
+  // Normalizar para lowercase com pontos (ex: MESSAGES_UPSERT → messages.upsert)
+  const normalizedEvent = rawEvent.toLowerCase().replace(/_/g, '.');
+
+  // Não é Evolution API se não tiver evento com ponto E não for um evento conhecido
+  const knownEvents = ['messages.upsert', 'messages.update', 'connection.update', 'send.message', 'messages.set'];
+  if (!normalizedEvent.includes('.') && !knownEvents.includes(normalizedEvent)) {
     return raw;
   }
 
-  console.log('[Webhook] Evolution API payload detectado, normalizando:', rawEvent);
+  console.log('[Webhook] Evolution API payload detectado, normalizando:', rawEvent, '→', normalizedEvent);
 
-  const data = raw.data || {};
+  // Evolution API v2 às vezes manda data como array, às vezes como objeto
+  const rawData = raw.data || {};
+  const data = Array.isArray(rawData) ? (rawData[0] || {}) : rawData;
   const key = data.key || {};
   const message = data.message || {};
 
@@ -29,11 +37,11 @@ function normalizeWebhookPayload(raw: any): any {
     'messages.set': 'skip',   // histórico ao conectar — ignorar
   };
 
-  const mapped = evMap[rawEvent];
-  if (!mapped) return { ...raw, EventType: rawEvent };
+  const mapped = evMap[normalizedEvent];
+  if (!mapped) return { ...raw, EventType: normalizedEvent };
   if (mapped === 'skip') return { EventType: 'skip' };
 
-  if (rawEvent === 'messages.upsert') {
+  if (normalizedEvent === 'messages.upsert') {
     // Ignorar mensagens enviadas pela própria API
     if (key.fromMe && (data.source === 'api' || raw.destination)) {
       return { EventType: 'skip' };
@@ -79,7 +87,7 @@ function normalizeWebhookPayload(raw: any): any {
     };
   }
 
-  if (rawEvent === 'connection.update') {
+  if (normalizedEvent === 'connection.update') {
     const state = data.state || '';
     const stateMap: Record<string, string> = {
       'open': 'connected',
@@ -98,7 +106,7 @@ function normalizeWebhookPayload(raw: any): any {
     };
   }
 
-  if (rawEvent === 'messages.update') {
+  if (normalizedEvent === 'messages.update') {
     return {
       EventType: 'messages_update',
       instance: raw.instance,

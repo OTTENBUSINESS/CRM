@@ -317,7 +317,19 @@ function ColumnScrollArea({ stageId, children }: { stageId: string; children: Re
   }, [key]);
 
   return (
-    <div ref={ref} className="flex-1 max-h-[calc(100vh-300px)] overflow-y-auto">
+    <div
+      ref={ref}
+      className={[
+        "flex-1 max-h-[calc(100vh-300px)] overflow-y-scroll mr-[10px]",
+        // Scrollbar sempre visível e clicável (não overlay)
+        "[&::-webkit-scrollbar]:w-[8px]",
+        "[&::-webkit-scrollbar-track]:bg-slate-100",
+        "[&::-webkit-scrollbar-track]:rounded-full",
+        "[&::-webkit-scrollbar-thumb]:bg-slate-300",
+        "[&::-webkit-scrollbar-thumb]:rounded-full",
+        "[&::-webkit-scrollbar-thumb:hover]:bg-slate-400",
+      ].join(" ")}
+    >
       {children}
     </div>
   );

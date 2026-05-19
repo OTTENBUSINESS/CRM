@@ -180,7 +180,8 @@ export async function getOrCreateContactWithProfilePic(
           pipeline_id: firstStage.pipeline_id,
           pipeline_stage_id: firstStage.id,
           title: leadName,
-          tenant_id: newLead.tenant_id,
+          // tenant_id omitido: o banco usa get_tenant_id() como default
+          // (passar newLead.tenant_id causava null → viola NOT NULL constraint)
           metadata: { source: 'whatsapp' },
         });
 
