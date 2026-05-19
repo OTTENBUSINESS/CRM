@@ -394,6 +394,7 @@ export function WhatsAppInstancesSection() {
           headers: { "Content-Type": "application/json", apikey: inst.api_key },
           body: JSON.stringify({
             webhook: {
+              enabled: true,
               url: WEBHOOK_URL,
               byEvents: false,
               base64: false,
