@@ -915,7 +915,7 @@ export function TeamTab() {
     email: "",
     password: "",
     phone: "",
-    role: "comercial",
+    role: "vendedor",
     team: "comercial",
   });
   const [editForm, setEditForm] = useState({
@@ -930,7 +930,7 @@ export function TeamTab() {
       await createMember.mutateAsync(createForm);
       toast({ title: "Membro criado com sucesso!" });
       setIsCreateOpen(false);
-      setCreateForm({ name: "", email: "", password: "", phone: "", role: "comercial", team: "comercial" });
+      setCreateForm({ name: "", email: "", password: "", phone: "", role: "vendedor", team: "comercial" });
     } catch (error) {
       toast({ title: error instanceof Error ? error.message : "Erro ao criar membro", variant: "destructive" });
     }
@@ -973,16 +973,26 @@ export function TeamTab() {
     setEditForm({
       name: member.name,
       phone: member.phone || "",
-      role: member.role || "comercial",
+      role: member.role || "vendedor",
       team: member.team || "comercial",
     });
   };
 
   const roleLabels: Record<string, string> = {
-    admin: "Admin",
-    comercial: "Comercial",
-    cs: "CS",
-    geral: "Geral",
+    admin:        "Administrador",
+    diretor:      "Diretor",
+    gerente:      "Gerente",
+    vendedor:     "Vendedor",
+    designer:     "Designer",
+    social_media: "Social Media",
+    programador:  "Programador",
+    social_seller:"Social Seller",
+    cs:           "CS",
+    comercial:    "Comercial",
+    closer:       "Closer",
+    sdr:          "SDR",
+    geral:        "Geral",
+    user:         "Usuário",
   };
 
   const teamLabels: Record<string, string> = {
@@ -1225,8 +1235,14 @@ export function TeamTab() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="comercial">Comercial</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="diretor">Diretor</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="vendedor">Vendedor</SelectItem>
+                    <SelectItem value="designer">Designer</SelectItem>
+                    <SelectItem value="social_media">Social Media</SelectItem>
+                    <SelectItem value="programador">Programador</SelectItem>
+                    <SelectItem value="social_seller">Social Seller</SelectItem>
                     <SelectItem value="cs">CS</SelectItem>
                     <SelectItem value="geral">Geral</SelectItem>
                   </SelectContent>
@@ -1296,8 +1312,14 @@ export function TeamTab() {
                 <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="comercial">Comercial</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="diretor">Diretor</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="vendedor">Vendedor</SelectItem>
+                    <SelectItem value="designer">Designer</SelectItem>
+                    <SelectItem value="social_media">Social Media</SelectItem>
+                    <SelectItem value="programador">Programador</SelectItem>
+                    <SelectItem value="social_seller">Social Seller</SelectItem>
                     <SelectItem value="cs">CS</SelectItem>
                     <SelectItem value="geral">Geral</SelectItem>
                   </SelectContent>

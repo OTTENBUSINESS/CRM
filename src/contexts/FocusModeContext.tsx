@@ -31,7 +31,8 @@ const FocusModeContext = createContext<FocusModeContextType | undefined>(undefin
 export function FocusModeProvider({ children }: { children: ReactNode }) {
   const { teamMember } = useAuth();
   const { activeCall } = useCall();
-  const isComercial = teamMember?.team === 'comercial';
+  const commercialRoles = ['vendedor', 'social_seller', 'comercial', 'closer', 'sdr'];
+  const isComercial = teamMember?.team === 'comercial' || (teamMember?.role ? commercialRoles.includes(teamMember.role) : false);
   const focusEnabled = !!teamMember?.focus_mode_enabled;
 
   const { data: queue = [] } = useFocusQueue(

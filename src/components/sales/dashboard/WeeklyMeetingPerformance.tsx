@@ -272,7 +272,7 @@ function useClosers() {
         .select('id, name')
         .eq('team', 'comercial')
         .eq('is_active', true)
-        .in('role', ['closer', 'comercial', 'admin'])
+        .in('role', ['admin', 'diretor', 'gerente', 'vendedor', 'social_seller', 'comercial', 'closer', 'sdr'])
         .order('name');
       return data || [];
     },

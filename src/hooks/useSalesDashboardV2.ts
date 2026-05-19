@@ -583,12 +583,12 @@ export function useMeetingMetrics(filters: DashboardFilters) {
       const toISO = to.toISOString();
       const repFilter = filters.salesRepId || null;
 
-      // Get sales team member IDs (comercial + admin roles) — meetings.team field is unreliable
+      // Get sales team member IDs — inclui todos os roles comerciais (novos e legados)
       const { data: salesMembers } = await supabase
         .from('team_members')
         .select('id, name, role')
         .eq('is_active', true)
-        .in('role', ['comercial', 'admin']);
+        .in('role', ['admin', 'diretor', 'gerente', 'vendedor', 'social_seller', 'comercial', 'closer', 'sdr']);
       const salesMemberIds = (salesMembers || []).map(m => m.id);
       const membersMap = new Map((salesMembers || []).map(m => [m.id, m.name]));
 
@@ -1160,12 +1160,12 @@ export function useMeetingsByStatus(filters: DashboardFilters, statusFilter: 'ma
       const toISO = to.toISOString();
       const repFilter = filters.salesRepId || null;
 
-      // Get sales team member IDs — filter by who created, not meetings.team
+      // Get sales team member IDs — inclui todos os roles comerciais (novos e legados)
       const { data: salesMembers } = await supabase
         .from('team_members')
         .select('id')
         .eq('is_active', true)
-        .in('role', ['comercial', 'admin']);
+        .in('role', ['admin', 'diretor', 'gerente', 'vendedor', 'social_seller', 'comercial', 'closer', 'sdr']);
       const salesMemberIds = (salesMembers || []).map(m => m.id);
       if (salesMemberIds.length === 0) return [];
       const filterIds = repFilter ? [repFilter] : salesMemberIds;

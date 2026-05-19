@@ -36,8 +36,8 @@ type DashTab = 'geral' | 'vendas' | 'pre-vendas';
 export default function SalesDashboardV3() {
   const [searchParams] = useSearchParams();
   const { teamMember } = useAuth();
-  const isAdmin = teamMember?.role === 'admin' || teamMember?.team === 'admin' || teamMember?.role === 'comercial';
-  const isCloser = teamMember?.role === 'closer';
+  const isAdmin = teamMember?.role === 'admin' || teamMember?.role === 'diretor' || teamMember?.role === 'gerente';
+  const isCloser = teamMember?.role === 'closer' || teamMember?.role === 'vendedor';
 
   // Determine default tab based on role
   const defaultTab: DashTab = isCloser ? 'vendas' : 'geral';
@@ -81,7 +81,7 @@ export default function SalesDashboardV3() {
   };
 
   // Sales team for selector (admin/comercial only)
-  const canSelectRep = isAdmin || teamMember?.role === 'comercial';
+  const canSelectRep = isAdmin;
 
   // Build filters
   const filters: DashboardFilters = useMemo(() => ({

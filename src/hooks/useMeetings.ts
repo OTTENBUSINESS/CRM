@@ -192,7 +192,6 @@ export const useCreateMeeting = () => {
       if (input.meeting_link) insertData.meeting_link = input.meeting_link;
       if (input.created_by) insertData.created_by = input.created_by;
 
-      console.log('📝 Creating meeting:', insertData);
 
       const { data, error } = await supabase
         .from('meetings')
@@ -205,7 +204,6 @@ export const useCreateMeeting = () => {
         throw error;
       }
 
-      console.log('✅ Meeting created:', data);
       return data as Meeting;
     },
     onSuccess: () => {

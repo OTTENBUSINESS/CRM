@@ -427,8 +427,8 @@ export function useNotifications() {
   useEffect(() => {
     if (!user || !teamMember) return;
 
-    // Só notifica roles relevantes: sdr, closer, comercial, admin
-    const notifyRoles = ['sdr', 'closer', 'comercial', 'admin'];
+    // Só notifica roles do time comercial/vendas
+    const notifyRoles = ['admin', 'diretor', 'gerente', 'vendedor', 'social_seller', 'comercial', 'closer', 'sdr'];
     if (!notifyRoles.includes(teamMember.role)) return;
 
     const channel = supabase

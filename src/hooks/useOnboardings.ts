@@ -580,7 +580,7 @@ export const useApproveOnboarding = () => {
         ...(journey && { journey }),
       };
 
-      console.log('📦 Payload do webhook:', JSON.stringify(webhookPayload, null, 2));
+      // console.log removido — continha PII de clientes
 
       const { data: { session } } = await supabase.auth.getSession();
       const webhookResponse = await fetch(PROXY_URL, {
@@ -593,7 +593,6 @@ export const useApproveOnboarding = () => {
       });
 
       const webhookResult = await webhookResponse.json();
-      console.log('📬 Resposta do webhook:', webhookResult);
 
       if (!webhookResponse.ok || !webhookResult.success) {
         throw new Error(webhookResult.error || 'Erro ao criar acesso na área de membros');

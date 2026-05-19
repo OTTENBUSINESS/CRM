@@ -400,7 +400,6 @@ export const useUpdateLeadInfo = () => {
         }
       });
       
-      console.log('[useUpdateLeadInfo] Updating lead:', { leadId, cleanData });
       
       const { data: result, error } = await (supabase as any)
         .from('leads')

@@ -6,7 +6,7 @@ export interface TeamMember {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'cs' | 'comercial' | 'closer' | 'sdr' | 'geral' | 'user';
+  role: 'admin' | 'diretor' | 'gerente' | 'vendedor' | 'designer' | 'social_media' | 'programador' | 'social_seller' | 'cs' | 'comercial' | 'closer' | 'sdr' | 'geral' | 'user';
   team: 'cs' | 'comercial' | 'marketing' | 'suporte' | 'admin' | null;
   phone: string | null;
   avatar_url: string | null;
@@ -33,7 +33,6 @@ interface AuthContextType {
   isCS: boolean;
   isComercial: boolean;
   canAccessSettings: boolean;
-  canAccessHR: boolean;
   canManageUsers: boolean;
 }
 
@@ -225,7 +224,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isCS = teamMember?.role === 'cs' || teamMember?.team === 'cs';
   const isComercial = teamMember?.role === 'comercial' || teamMember?.role === 'closer' || teamMember?.role === 'sdr' || teamMember?.team === 'comercial';
   const canAccessSettings = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
-  const canAccessHR = teamMember?.role !== 'closer' && teamMember?.role !== 'sdr';
   const canManageUsers = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
 
   return (
@@ -242,7 +240,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isCS,
       isComercial,
       canAccessSettings,
-      canAccessHR,
       canManageUsers,
     }}>
       {children}

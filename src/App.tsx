@@ -249,7 +249,7 @@ const AppRoutes = () => {
       <Route path="/gestao/reunioes" element={<ProtectedRoute><TeamMeetings /></ProtectedRoute>} />
 
       {/* Admin */}
-      <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+      <Route path="/admin/usuarios" element={<ProtectedRoute><AdminRoute><AdminUsers /></AdminRoute></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

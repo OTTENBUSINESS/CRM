@@ -89,7 +89,6 @@ const sections: NavSection[] = [
   },
 ];
 
-const bottomItems: NavItem[] = [];
 
 /* ---------------------------------------------------------------
  * AppSidebar
