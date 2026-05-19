@@ -28,6 +28,8 @@ interface UseSonioxReturn {
   isTranscribing: boolean;
   isPaused: boolean;
   isStale: boolean; // true when no data received for STALE_THRESHOLD_MS
+  /** true quando o servidor Soniox retornou erro irrecuperável (quota, auth, etc.) */
+  isFatalError: boolean;
   channelHealth: ChannelHealth;
   transcriptions: TranscriptionSegment[];
   transcriptionsRef: React.MutableRefObject<TranscriptionSegment[]>;
@@ -103,6 +105,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isStale, setIsStale] = useState(false);
+  const [isFatalError, setIsFatalError] = useState(false);
   const [channelHealth, setChannelHealth] = useState<ChannelHealth>({ mic: 'active', system: 'unavailable' });
   const [transcriptions, setTranscriptions] = useState<TranscriptionSegment[]>(initialTranscriptions);
   const [error, setError] = useState<string | null>(null);
@@ -343,6 +346,8 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
             const healthKey = channel.channelName === 'MIC' ? 'mic' : 'system' as const;
             updateChannelHealth(healthKey, 'dead');
             setError(`Soniox: ${channel.fatalError}`);
+            // Sinaliza que é um erro irrecuperável (quota, auth, etc.) — UI não deve oferecer "Reconectar"
+            setIsFatalError(true);
             // Fecha intencionalmente pra não disparar auto-reconnect do onclose
             channel.intentionallyClosed = true;
             try { channel.ws?.close(1000, 'fatal_error'); } catch {}
@@ -577,6 +582,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
 
   const startTranscription = useCallback(async () => {
     setError(null);
+    setIsFatalError(false);
     isActiveRef.current = true;
     isPausedRef.current = false;
     setIsPaused(false);
@@ -755,6 +761,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
     setIsTranscribing(false);
     setIsPaused(false);
     setIsStale(false);
+    setIsFatalError(false);
     setChannelHealth({ mic: 'active', system: 'unavailable' });
     console.log('[Soniox] Transcrição parada');
   }, [cleanupChannel]);
@@ -845,6 +852,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
     isTranscribing,
     isPaused,
     isStale,
+    isFatalError,
     channelHealth,
     transcriptions,
     transcriptionsRef,

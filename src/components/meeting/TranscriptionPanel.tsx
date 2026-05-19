@@ -152,6 +152,7 @@ export function TranscriptionPanel({
     isTranscribing,
     isPaused,
     isStale,
+    isFatalError,
     channelHealth,
     transcriptions,
     transcriptionsRef,
@@ -263,10 +264,18 @@ export function TranscriptionPanel({
       if (currStatus === 'dead') {
         cancelPendingReconnectToast();
         playBeep();
-        sonnerToast.error(`${label} desconectou`, {
-          action: { label: 'Reconectar', onClick: () => restartTranscription() },
-          duration: Infinity,
-        });
+        if (isFatalError) {
+          // Erro fatal do servidor (quota, auth) — não oferece reconexão, toast expira
+          sonnerToast.error('Transcrição indisponível', {
+            description: 'Serviço Soniox fora do ar ou sem créditos. Contate o administrador.',
+            duration: 8000,
+          });
+        } else {
+          sonnerToast.error(`${label} desconectou`, {
+            action: { label: 'Reconectar', onClick: () => restartTranscription() },
+            duration: Infinity,
+          });
+        }
         lastToastAtRef.current[ch] = Date.now();
       } else if (currStatus === 'reconnecting' && prevStatus !== 'dead') {
         // Agenda toast — só aparece se ficar reconectando por mais de RECONNECT_TOAST_DELAY_MS
@@ -1720,15 +1729,24 @@ export function TranscriptionPanel({
               {/* Reconnect overlay — visible above scroll area when a channel is dead */}
               {isTranscribing && !isPaused && (channelHealth.mic === 'dead' || channelHealth.system === 'dead') && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => restartTranscription()}
-                    className="gap-2"
-                  >
-                    <RotateCcw className={cn('h-4 w-4', (channelHealth.mic === 'reconnecting' || channelHealth.system === 'reconnecting') && 'animate-spin')} />
-                    Reconectar Transcrição
-                  </Button>
+                  {isFatalError ? (
+                    // Erro fatal (quota/auth) — não faz sentido reconectar
+                    <div className="flex flex-col items-center gap-2 px-4 text-center">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      <p className="text-xs font-medium text-foreground">Transcrição indisponível</p>
+                      <p className="text-[10px] text-muted-foreground">Sem créditos ou falha na API Soniox</p>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => restartTranscription()}
+                      className="gap-2"
+                    >
+                      <RotateCcw className={cn('h-4 w-4', (channelHealth.mic === 'reconnecting' || channelHealth.system === 'reconnecting') && 'animate-spin')} />
+                      Reconectar Transcrição
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -1755,8 +1773,12 @@ export function TranscriptionPanel({
                 )}
 
                 {error && (
-                  <div className="text-red-500 p-1 bg-red-50 rounded text-[10px]">
-                    ❌ {error}
+                  <div className={cn(
+                    "p-1.5 rounded text-[10px] flex items-start gap-1.5",
+                    isFatalError ? "text-amber-700 bg-amber-50 border border-amber-200" : "text-red-500 bg-red-50"
+                  )}>
+                    {isFatalError ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> : <span>❌</span>}
+                    <span>{isFatalError ? 'Serviço de transcrição indisponível (sem créditos Soniox). A reunião pode continuar sem transcrição.' : error}</span>
                   </div>
                 )}
 
