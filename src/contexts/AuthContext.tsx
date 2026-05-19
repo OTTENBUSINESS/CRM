@@ -27,7 +27,7 @@ interface AuthContextType {
   loading: boolean;
   isPasswordRecovery: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string, role: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isCS: boolean;
@@ -202,12 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, role: string = 'geral') => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name }
+        data: { name, role }
       }
     });
     return { error: error as Error | null };

@@ -72,11 +72,23 @@ export default function Login() {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
+  const ROLES = [
+    { value: 'vendedor',     label: 'Vendedor' },
+    { value: 'designer',     label: 'Designer' },
+    { value: 'social_media', label: 'Social Media' },
+    { value: 'diretor',      label: 'Diretor' },
+    { value: 'gerente',      label: 'Gerente' },
+    { value: 'admin',        label: 'Administrador' },
+    { value: 'programador',  label: 'Programador' },
+    { value: 'social_seller',label: 'Social Seller' },
+  ];
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signUpName, setSignUpName] = useState('');
+  const [signUpRole, setSignUpRole] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -88,7 +100,7 @@ export default function Login() {
     setIsLoading(true);
 
     if (isSignUp) {
-      const { error } = await signUp(loginEmail, loginPassword, signUpName || loginEmail.split('@')[0]);
+      const { error } = await signUp(loginEmail, loginPassword, signUpName || loginEmail.split('@')[0], signUpRole || 'geral');
       if (error) {
         toast({
           title: 'Erro ao criar conta',
@@ -281,6 +293,50 @@ export default function Login() {
                       className="w-full bg-[#f8f6f1]/[0.03] border border-[#f8f6f1]/[0.06] rounded-xl px-4 py-3.5 text-[#f8f6f1] text-sm placeholder:text-[#f8f6f1]/15 outline-none transition-all duration-300 focus:border-amber-500/40 focus:bg-[#f8f6f1]/[0.05] focus:shadow-[0_0_0_3px_rgba(200,149,46,0.06)] hover:border-[#f8f6f1]/[0.12]"
                     />
                     <div className={`absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-amber-500/60 via-amber-400/40 to-transparent transition-transform duration-500 origin-left ${focusedField === 'name' ? 'scale-x-100' : 'scale-x-0'}`} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Role field (sign up only) */}
+            <AnimatePresence>
+              {isSignUp && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, delay: 0.05 }}
+                >
+                  <label
+                    className={`block text-[11px] tracking-[0.15em] uppercase mb-2 transition-colors duration-300 ${
+                      focusedField === 'role' ? 'text-amber-400' : 'text-[#f8f6f1]/30'
+                    }`}
+                  >
+                    Função
+                  </label>
+                  <div className="relative group">
+                    <select
+                      value={signUpRole}
+                      onChange={(e) => setSignUpRole(e.target.value)}
+                      onFocus={() => setFocusedField('role')}
+                      onBlur={() => setFocusedField(null)}
+                      className="w-full bg-[#f8f6f1]/[0.03] border border-[#f8f6f1]/[0.06] rounded-xl px-4 py-3.5 text-[#f8f6f1] text-sm outline-none transition-all duration-300 focus:border-amber-500/40 focus:bg-[#f8f6f1]/[0.05] focus:shadow-[0_0_0_3px_rgba(200,149,46,0.06)] hover:border-[#f8f6f1]/[0.12] appearance-none cursor-pointer"
+                      style={{ background: 'rgba(248,246,241,0.03)' }}
+                    >
+                      <option value="" disabled style={{ background: '#1a1a1a' }}>Selecione sua função</option>
+                      {ROLES.map((r) => (
+                        <option key={r.value} value={r.value} style={{ background: '#1a1a1a' }}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Custom arrow */}
+                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#f8f6f1]/30">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    <div className={`absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-amber-500/60 via-amber-400/40 to-transparent transition-transform duration-500 origin-left ${focusedField === 'role' ? 'scale-x-100' : 'scale-x-0'}`} />
                   </div>
                 </motion.div>
               )}
