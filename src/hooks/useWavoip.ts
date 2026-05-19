@@ -96,9 +96,9 @@ export const useWavoipDevice = (teamMemberId?: string) => {
         .select("*")
         .eq("team_member_id", teamMemberId)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error) throw error;
       return data as WavoipDevice | null;
     },
     enabled: !!teamMemberId,

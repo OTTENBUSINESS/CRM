@@ -780,14 +780,20 @@ export const useClientTimeline = (leadId: string | undefined, organizationId: st
         (meetingsWithActivity || []).forEach((m: any) => meetingActivityIds.add(m.activity_id));
       }
 
+      // Guard: nunca buscar sem filtro — evita select=* sem where (causa 400)
       const activityQuery = organizationId
-        ? supabase.from('company_activities' as any).select('*').eq('organization_id', organizationId)
+        ? supabase.from('company_activities' as any)
+            .select('id,name,task_type,status,completed,created_at,due_datetime,outcome,metadata,responsavel_id,lead_id,organization_id,notes')
+            .eq('organization_id', organizationId)
         : leadId
-          ? supabase.from('company_activities' as any).select('*').eq('lead_id', leadId)
+          ? supabase.from('company_activities' as any)
+              .select('id,name,task_type,status,completed,created_at,due_datetime,outcome,metadata,responsavel_id,lead_id,organization_id,notes')
+              .eq('lead_id', leadId)
           : null;
 
       if (activityQuery) {
-        const { data: activities } = await (activityQuery.order('created_at', { ascending: false }) as any);
+        const { data: activities, error: actErr } = await (activityQuery.order('created_at', { ascending: false }) as any);
+        if (actErr) { console.warn('[useClientTimeline] company_activities error:', actErr.message); }
 
         (activities || []).forEach((activity: any) => {
           // Pular tasks de meeting/call que já aparecem na seção de meetings (evita duplicata)
