@@ -382,15 +382,17 @@ export function WhatsAppInstancesSection() {
     try {
       let res: Response;
       if (isEvolutionApi(inst)) {
-        // Evolution API: POST /webhook/set/{instanceName}
+        // Evolution API v2: payload deve ser { webhook: { url, byEvents, base64, events } }
         res = await fetch(`${url}/webhook/set/${encodeURIComponent(inst.name)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: inst.api_key },
           body: JSON.stringify({
-            url: WEBHOOK_URL,
-            webhook_by_events: false,
-            webhook_base64: false,
-            events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
+            webhook: {
+              url: WEBHOOK_URL,
+              byEvents: false,
+              base64: false,
+              events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "SEND_MESSAGE"],
+            },
           }),
         });
       } else {
