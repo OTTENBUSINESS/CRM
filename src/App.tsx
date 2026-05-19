@@ -104,6 +104,9 @@ import TaskManagement from "./pages/TaskManagement";
 import TeamCalendar from "./pages/TeamCalendar";
 import TeamMeetings from "./pages/TeamMeetings";
 
+// Admin
+import AdminUsers from "./pages/AdminUsers";
+
 // Public booking
 const BookMeeting = React.lazy(() => import("./pages/BookMeeting"));
 
@@ -129,7 +132,7 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isPasswordRecovery } = useAuth();
+  const { user, loading, isPasswordRecovery, teamMember, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -146,6 +149,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Usuário bloqueado: exibe tela de acesso negado
+  if (teamMember && teamMember.is_active === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-sm w-full text-center space-y-4">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 mx-auto">
+            <span className="text-3xl">🔒</span>
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">Acesso bloqueado</h2>
+          <p className="text-sm text-muted-foreground">
+            Sua conta foi bloqueada. Entre em contato com o administrador do sistema.
+          </p>
+          <button
+            onClick={() => signOut()}
+            className="text-sm text-amber-400 hover:text-amber-300 underline underline-offset-4 transition-colors"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -213,6 +239,9 @@ const AppRoutes = () => {
       <Route path="/gestao/tarefas" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
       <Route path="/gestao/calendario" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
       <Route path="/gestao/reunioes" element={<ProtectedRoute><TeamMeetings /></ProtectedRoute>} />
+
+      {/* Admin */}
+      <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -14,6 +14,7 @@ import {
   LogOut,
   TrendingUp,
   User2,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -100,7 +101,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { unreadWhatsAppCount, markWhatsAppAsRead } = useNotificationContext();
-  const { teamMember, signOut } = useAuth();
+  const { teamMember, signOut, canManageUsers } = useAuth();
   const { isModuleEnabled } = useEnabledModules();
 
   // Sidebar do shadcn expõe o estado (expanded/collapsed)
@@ -220,6 +221,13 @@ export function AppSidebar() {
               <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
                 Sistema
               </p>
+            )}
+            {canManageUsers && (
+              <NavItemLink
+                item={{ title: "Usuários", url: "/admin/usuarios", icon: ShieldCheck }}
+                active={isActive("/admin/usuarios")}
+                isCollapsed={isCollapsed}
+              />
             )}
             {bottomItems.map((item) => (
               <NavItemLink

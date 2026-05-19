@@ -34,6 +34,7 @@ interface AuthContextType {
   isComercial: boolean;
   canAccessSettings: boolean;
   canAccessHR: boolean;
+  canManageUsers: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -225,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isComercial = teamMember?.role === 'comercial' || teamMember?.role === 'closer' || teamMember?.role === 'sdr' || teamMember?.team === 'comercial';
   const canAccessSettings = teamMember?.role === 'admin' || teamMember?.role === 'comercial';
   const canAccessHR = teamMember?.role !== 'closer' && teamMember?.role !== 'sdr';
+  const canManageUsers = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
 
   return (
     <AuthContext.Provider value={{
@@ -241,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isComercial,
       canAccessSettings,
       canAccessHR,
+      canManageUsers,
     }}>
       {children}
     </AuthContext.Provider>
