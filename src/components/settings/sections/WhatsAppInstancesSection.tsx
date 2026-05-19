@@ -134,6 +134,15 @@ export function WhatsAppInstancesSection() {
     setRefreshingId(inst.id);
     try {
       const res = await fetch(`${url}/instance/status`, { headers: { token: inst.api_key } });
+      if (res.status === 401) {
+        toast({
+          title: `Token inválido — ${inst.name}`,
+          description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
+          variant: "destructive",
+        });
+        setStatusMap((prev) => ({ ...prev, [inst.id]: null }));
+        return;
+      }
       const data = await res.json();
       setStatusMap((prev) => ({ ...prev, [inst.id]: data }));
       const newStatus = data.status?.connected ? "connected" : "disconnected";
@@ -161,6 +170,14 @@ export function WhatsAppInstancesSection() {
         method: "POST",
         headers: { "Content-Type": "application/json", token: inst.api_key },
       });
+      if (res.status === 401) {
+        toast({
+          title: `Token inválido — ${inst.name}`,
+          description: "Essa instância não autentica no UAZAPI. Exclua e recrie-a para gerar um novo token.",
+          variant: "destructive",
+        });
+        return;
+      }
       const data = await res.json();
       const qrcode = data.instance?.qrcode || data.qrcode;
       if (qrcode) {

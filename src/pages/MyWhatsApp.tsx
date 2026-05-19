@@ -46,6 +46,15 @@ function MessagingSection() {
         // Endpoint CORRETO: /instance/status (consulta status da instancia especifica via token).
         // Antes estava /status (health check do servidor — retornava instancia aleatoria!).
         const res = await fetch(`${data.api_url}/instance/status`, { headers: { token: data.api_key } });
+        if (res.status === 401) {
+          toast({
+            title: "Token da instância inválido",
+            description: "Essa instância não autentica no UAZAPI. Peça ao administrador pra reconfigurá-la em Configurações > WhatsApp.",
+            variant: "destructive",
+          });
+          setStatus("disconnected");
+          return;
+        }
         const json = await res.json();
         // UAZAPI retorna: { instance: {...}, status: { connected: bool, jid, loggedIn } }
         const isConnected = json?.status?.connected === true || json?.instance?.status === 'connected';
@@ -72,6 +81,14 @@ function MessagingSection() {
         method: "POST",
         headers: { "Content-Type": "application/json", token: instance.api_key },
       });
+      if (res.status === 401) {
+        toast({
+          title: "Token da instância inválido",
+          description: "Essa instância não autentica no UAZAPI. Peça ao administrador pra reconfigurá-la em Configurações > WhatsApp.",
+          variant: "destructive",
+        });
+        return;
+      }
       const json = await res.json();
       const qrcode = json?.instance?.qrcode || json?.qrcode;
       if (qrcode) {
