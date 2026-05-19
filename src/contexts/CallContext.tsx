@@ -369,9 +369,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('team_member_id', teamMember.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('[CallProvider] Erro ao buscar device:', error.code, error.message);
       }
 
