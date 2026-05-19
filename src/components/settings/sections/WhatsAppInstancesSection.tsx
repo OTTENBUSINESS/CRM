@@ -145,13 +145,19 @@ export function WhatsAppInstancesSection() {
     try {
       let connected = false;
       if (isEvolutionApi(inst)) {
-        // Evolution API: GET /instance/connectionState/{name}
+        // Evolution API v2: GET /instance/connectionState/{name}
         const res = await fetch(`${url}/instance/connectionState/${encodeURIComponent(inst.name)}`, {
           headers: { apikey: inst.api_key },
         });
         if (res.status === 401 || res.status === 403) {
           toast({ title: `Token inválido — ${inst.name}`, description: "Verifique a API Key da instância.", variant: "destructive" });
           setStatusMap((prev) => ({ ...prev, [inst.id]: null }));
+          return;
+        }
+        // 404 = instância criada mas ainda sem estado de conexão (normal antes do QR)
+        if (res.status === 404) {
+          connected = false;
+          setStatusMap((prev) => ({ ...prev, [inst.id]: { status: { connected: false }, instance: { profileName: "" } } }));
           return;
         }
         const data = await res.json();
