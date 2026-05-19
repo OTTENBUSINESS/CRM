@@ -34,6 +34,7 @@ import {
   UserPlus,
   Users,
   X,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -270,6 +271,38 @@ export function WhatsAppInstancesSection() {
     }
   };
 
+  // === CONFIGURAR WEBHOOK ===
+  const handleConfigureWebhook = async (inst: WhatsAppInstance) => {
+    const url = inst.api_url || inst.webhook_url;
+    if (!url || !inst.api_key) {
+      toast({ title: "Instância sem URL ou token", variant: "destructive" });
+      return;
+    }
+    setRefreshingId(inst.id);
+    try {
+      const res = await fetch(`${url}/webhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token: inst.api_key },
+        body: JSON.stringify({
+          url: WEBHOOK_URL,
+          events: ["messages", "messages_update", "connection", "groups", "contacts", "call", "chats"],
+          excludeMessages: ["wasSentByApi"],
+          addUrlEvents: true,
+        }),
+      });
+      if (res.ok) {
+        toast({ title: "✅ Webhook configurado!", description: "O UAZAPI irá enviar eventos para o CRM agora." });
+      } else {
+        const txt = await res.text().catch(() => "");
+        toast({ title: `Webhook: erro ${res.status}`, description: txt.slice(0, 120) || "Tente novamente", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao configurar webhook", description: err.message, variant: "destructive" });
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
   // === DELETE ===
   const handleDelete = async (inst: WhatsAppInstance) => {
     if (!confirm(`Excluir "${inst.name}"?`)) return;
@@ -457,6 +490,16 @@ export function WhatsAppInstancesSection() {
                             Verificar
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-lg h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                          size="sm"
+                          onClick={() => handleConfigureWebhook(inst)}
+                          disabled={busy}
+                        >
+                          {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5 mr-1.5" />}
+                          Configurar Webhook
+                        </Button>
                         <Button
                           variant="ghost"
                           className="w-full rounded-lg h-8 text-xs text-destructive hover:text-destructive"

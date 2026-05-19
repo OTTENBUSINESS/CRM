@@ -163,6 +163,39 @@ export async function getOrCreateContactWithProfilePic(
 
   console.log('[Webhook] Created new lead:', newLead.id, 'name:', leadName);
 
+  // Auto-criar deal na primeira stage do pipeline para que o lead apareça no Kanban
+  try {
+    const { data: firstStage } = await supabase
+      .from('sales_pipeline_stages')
+      .select('id, pipeline_id')
+      .order('position', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (firstStage) {
+      const { error: dealError } = await supabase
+        .from('deals')
+        .insert({
+          lead_id: newLead.id,
+          pipeline_id: firstStage.pipeline_id,
+          pipeline_stage_id: firstStage.id,
+          title: leadName,
+          tenant_id: newLead.tenant_id,
+          metadata: { source: 'whatsapp' },
+        });
+
+      if (dealError) {
+        console.error('[Webhook] Erro ao criar deal para novo lead:', dealError.message);
+      } else {
+        console.log('[Webhook] ✅ Deal criado automaticamente para lead WhatsApp:', newLead.id, '→ stage:', firstStage.id);
+      }
+    } else {
+      console.warn('[Webhook] Nenhuma stage de pipeline encontrada — lead criado sem deal');
+    }
+  } catch (dealErr: any) {
+    console.error('[Webhook] Falha ao criar deal automático:', dealErr.message);
+  }
+
   // Upload avatar em background (não bloqueia)
   if (details?.avatar && newLead?.id) {
     uploadAvatarToStorage(details.avatar, newLead.id).then(storedUrl => {
