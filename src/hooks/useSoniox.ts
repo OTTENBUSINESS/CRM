@@ -106,6 +106,8 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
   const [isPaused, setIsPaused] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [isFatalError, setIsFatalError] = useState(false);
+  // Ref síncrona para bloquear restartTranscription ANTES do próximo render do React
+  const isFatalErrorRef = useRef(false);
   const [channelHealth, setChannelHealth] = useState<ChannelHealth>({ mic: 'active', system: 'unavailable' });
   const [transcriptions, setTranscriptions] = useState<TranscriptionSegment[]>(initialTranscriptions);
   const [error, setError] = useState<string | null>(null);
@@ -347,6 +349,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
             updateChannelHealth(healthKey, 'dead');
             setError(`Soniox: ${channel.fatalError}`);
             // Sinaliza que é um erro irrecuperável (quota, auth, etc.) — UI não deve oferecer "Reconectar"
+            isFatalErrorRef.current = true; // síncrono — bloqueia restartTranscription imediatamente
             setIsFatalError(true);
             // Fecha intencionalmente pra não disparar auto-reconnect do onclose
             channel.intentionallyClosed = true;
@@ -582,6 +585,7 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
 
   const startTranscription = useCallback(async () => {
     setError(null);
+    isFatalErrorRef.current = false; // reset síncrono antes de tentar nova conexão
     setIsFatalError(false);
     isActiveRef.current = true;
     isPausedRef.current = false;
@@ -761,7 +765,8 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
     setIsTranscribing(false);
     setIsPaused(false);
     setIsStale(false);
-    setIsFatalError(false);
+    // Não resetar isFatalError aqui — deve persistir para impedir loops de auto-recovery.
+    // Será resetado apenas em startTranscription() (tentativa explícita do usuário).
     setChannelHealth({ mic: 'active', system: 'unavailable' });
     console.log('[Soniox] Transcrição parada');
   }, [cleanupChannel]);
@@ -807,6 +812,12 @@ export function useSoniox(options: UseSonioxOptions = {}): UseSonioxReturn {
 
   // Restart: para tudo, mas preserva transcrições existentes, e re-inicia
   const restartTranscription = useCallback(async () => {
+    // Bloquear restart se há erro fatal (quota/auth) — reconectar só repetiria o erro.
+    // Usa ref para leitura síncrona, sem esperar próximo render do React.
+    if (isFatalErrorRef.current) {
+      console.warn('[Soniox] restartTranscription bloqueado — erro fatal ativo (quota/auth). Adicione créditos e inicie uma nova sessão.');
+      return;
+    }
     console.log('[Soniox] Reiniciando transcrição (preservando dados existentes)...');
     stopTranscription();
     // Pequeno delay para garantir cleanup completo

@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 interface TranscriptionPanelProps {
@@ -302,11 +303,12 @@ export function TranscriptionPanel({
   }, [channelHealth, isTranscribing, restartTranscription]);
 
   // === AUTO-RECOVERY: reconectar ao voltar para a tab ===
-  // Só dispara quando um canal está efetivamente dead (não apenas stale — que pode ser silêncio)
+  // Só dispara quando um canal está efetivamente dead E o erro NÃO é fatal (quota/auth)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       if (!isTranscribing) return;
+      if (isFatalError) return; // erro irrecuperável — não tentar auto-reconectar
       const hasDead = channelHealth.mic === 'dead' || channelHealth.system === 'dead';
       if (!hasDead) return;
       console.log('[Meeting] Tab visível + canal morto → auto-recovery');
@@ -318,7 +320,7 @@ export function TranscriptionPanel({
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [isTranscribing, channelHealth, restartTranscription]);
+  }, [isTranscribing, channelHealth, restartTranscription, isFatalError]);
 
   // Salvar transcrições em tempo real no banco (a cada 10 segundos)
   const lastSavedCountRef = useRef(0);
@@ -1376,6 +1378,7 @@ export function TranscriptionPanel({
               <Video className="h-5 w-5" />
               Recuperando Reunião...
             </DialogTitle>
+            <DialogDescription>Carregando transcrições da sessão anterior.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-8 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -1404,6 +1407,7 @@ export function TranscriptionPanel({
               <Video className="h-5 w-5" />
               Iniciar Reunião - {organizationName}
             </DialogTitle>
+            <DialogDescription>Siga os passos para iniciar a transcrição da reunião.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
@@ -1726,27 +1730,18 @@ export function TranscriptionPanel({
                 )}
               </div>
 
-              {/* Reconnect overlay — visible above scroll area when a channel is dead */}
-              {isTranscribing && !isPaused && (channelHealth.mic === 'dead' || channelHealth.system === 'dead') && (
+              {/* Reconnect overlay — só para erros de REDE (não para erros fatais de API) */}
+              {isTranscribing && !isPaused && !isFatalError && (channelHealth.mic === 'dead' || channelHealth.system === 'dead') && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                  {isFatalError ? (
-                    // Erro fatal (quota/auth) — não faz sentido reconectar
-                    <div className="flex flex-col items-center gap-2 px-4 text-center">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      <p className="text-xs font-medium text-foreground">Transcrição indisponível</p>
-                      <p className="text-[10px] text-muted-foreground">Sem créditos ou falha na API Soniox</p>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => restartTranscription()}
-                      className="gap-2"
-                    >
-                      <RotateCcw className={cn('h-4 w-4', (channelHealth.mic === 'reconnecting' || channelHealth.system === 'reconnecting') && 'animate-spin')} />
-                      Reconectar Transcrição
-                    </Button>
-                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => restartTranscription()}
+                    className="gap-2"
+                  >
+                    <RotateCcw className={cn('h-4 w-4', (channelHealth.mic === 'reconnecting' || channelHealth.system === 'reconnecting') && 'animate-spin')} />
+                    Reconectar Transcrição
+                  </Button>
                 </div>
               )}
 
@@ -1850,6 +1845,7 @@ export function TranscriptionPanel({
               <Square className="h-5 w-5" />
               Encerrar Reunião
             </DialogTitle>
+            <DialogDescription>Selecione como a reunião foi finalizada.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">

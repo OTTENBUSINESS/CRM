@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -528,6 +529,7 @@ export function GlobalTranscriptionPanel() {
               <Sparkles className="h-5 w-5 text-orange-500" />
               Processando Onboarding
             </DialogTitle>
+            <DialogDescription>Aguarde enquanto a transcrição é analisada pela IA.</DialogDescription>
           </DialogHeader>
           
           <div className="py-6 space-y-6">
