@@ -47,6 +47,8 @@ interface NavItem {
   icon: React.ElementType;
   /** opcional: id do módulo necessário pra exibir */
   moduleId?: string;
+  /** se true, só marca como ativo em match exato (sem prefixo) */
+  exact?: boolean;
 }
 
 interface NavSection {
@@ -64,7 +66,7 @@ const sections: NavSection[] = [
     moduleId: "comercial",
     items: [
       { title: "Cockpit", url: "/comercial/cockpit", icon: Headphones },
-      { title: "Dashboard", url: "/comercial", icon: LayoutDashboard },
+      { title: "Dashboard", url: "/comercial", icon: LayoutDashboard, exact: true },
       { title: "Pipeline", url: "/comercial/pipeline", icon: Kanban },
       { title: "Inbox", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Treinamento", url: "/comercial/treinamento", icon: BookOpen },
@@ -110,8 +112,8 @@ export function AppSidebar() {
     if (currentPath === "/comercial/inbox") markWhatsAppAsRead();
   }, [currentPath, markWhatsAppAsRead]);
 
-  const isActive = (path: string) => {
-    if (path === "/") return currentPath === "/";
+  const isActive = (path: string, exact = false) => {
+    if (path === "/" || exact) return currentPath === path;
     return currentPath === path || currentPath.startsWith(path + "/");
   };
 
@@ -336,7 +338,7 @@ function Section({ section, isCollapsed, isActive, unreadCount }: SectionProps) 
 
       <nav aria-label={section.label} className="flex flex-col gap-0.5">
         {section.items.map((item) => {
-          const active = isActive(item.url);
+          const active = isActive(item.url, item.exact);
           const showBadge = item.url === "/comercial/inbox" && unreadCount > 0;
           return (
             <NavItemLink

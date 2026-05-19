@@ -1074,9 +1074,9 @@ Se houver histórico de conversa com o lead, use algo da conversa para personali
                     </div>
                   )}
 
-                  {/* Deal */}
+                  {/* Lead */}
                   <div>
-                    <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Deal</p>
+                    <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Lead</p>
                     <div className="text-xs text-zinc-400 space-y-0.5">
                       <p>{currentLead.deal_title}</p>
                       {currentLead.deal_value && <p>R$ {currentLead.deal_value.toLocaleString('pt-BR')}</p>}
