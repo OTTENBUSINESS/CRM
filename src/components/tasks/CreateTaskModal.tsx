@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -147,7 +147,7 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
     queryFn: async () => {
       const { data } = await supabase
         .from('leads')
-        .select('id, name, organization:organizations(id, name), deals!inner(id)')
+        .select('id, name, organization:organizations(id, name)')
         .order('name');
       return data || [];
     },
@@ -617,6 +617,9 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
               <span className="font-normal text-muted-foreground text-sm">• {linkedToName}</span>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Criar nova tarefa com tipo, responsável, data e horário
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 min-h-0 pr-1">

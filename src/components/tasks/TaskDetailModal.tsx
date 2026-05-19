@@ -239,7 +239,7 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
     queryFn: async () => {
       const { data } = await supabase
         .from('leads')
-        .select('id, name, organization:organizations(id, name), deals!inner(id)')
+        .select('id, name, organization:organizations(id, name)')
         .order('name');
       return data || [];
     },

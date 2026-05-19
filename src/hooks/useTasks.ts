@@ -275,8 +275,7 @@ export const useOnboardingTasks = () => {
         .from('company_activities')
         .select(`
           *,
-          organization:organizations!company_activities_organization_id_fkey(id, name, primary_contact_id),
-          product:products!company_activities_product_id_fkey(id, name)
+          organization:organizations!company_activities_organization_id_fkey(id, name, primary_contact_id)
         `)
         .eq('task_type', 'onboarding')
         .neq('status', 'cancelled')
