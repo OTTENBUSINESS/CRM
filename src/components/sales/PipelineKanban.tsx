@@ -1307,7 +1307,7 @@ export function PipelineKanbanHeader({
         </div>
         <div>
           <p className="text-2xl font-bold text-slate-900">{totalDeals}</p>
-          <p className="text-xs text-slate-500">Deals ativos</p>
+          <p className="text-xs text-slate-500">Leads ativos</p>
         </div>
       </div>
 

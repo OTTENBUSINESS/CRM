@@ -497,13 +497,13 @@ export function PipelineBoardContent() {
             transferredByName: teamMember?.name || 'Sistema (auto-transfer)',
           });
           toast({
-            title: "Deal transferido para Closer",
+            title: "Lead transferido para Closer",
             description: "Movido automaticamente para Closer → Call Agendada",
           });
           return;
         } catch {
           toast({
-            title: "Deal movido, mas erro na transferência",
+            title: "Lead movido, mas erro na transferência",
             description: "O deal foi movido para Call Agendada mas não foi transferido para o Closer.",
             variant: "destructive",
           });
@@ -512,7 +512,7 @@ export function PipelineBoardContent() {
       }
 
       toast({
-        title: "Deal movido",
+        title: "Lead movido",
         description: "O deal foi movido para o novo estágio.",
       });
     } catch (_e) {
@@ -533,7 +533,7 @@ export function PipelineBoardContent() {
     if (!confirm("Tem certeza que deseja excluir este deal? Esta ação não pode ser desfeita.")) return;
     deleteDealMutation.mutate(dealId, {
       onSuccess: () => {
-        toast({ title: "Deal excluído com sucesso" });
+        toast({ title: "Lead excluído com sucesso" });
       },
       onError: (err: any) => {
         toast({ title: "Erro ao excluir deal", description: err?.message, variant: "destructive" });
@@ -571,7 +571,7 @@ export function PipelineBoardContent() {
             <div className="flex items-center gap-2">
               <Button onClick={() => handleAddDeal()} className="h-9 px-4 text-sm">
                 <Plus className="h-4 w-4 mr-1.5" />
-                Novo Deal
+                Novo Lead
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1055,11 +1055,11 @@ export function PipelineBoardContent() {
             </div>
             <h3 className="text-lg font-medium text-slate-800 mb-1">Pipeline vazio</h3>
             <p className="text-slate-500 mb-6 text-sm">
-              Crie seu primeiro deal para visualizá-lo aqui
+              Crie seu primeiro lead para visualizá-lo aqui
             </p>
             <Button onClick={() => handleAddDeal()} className="h-9 px-4">
               <Plus className="h-4 w-4 mr-1.5" />
-              Criar deal
+              Criar lead
             </Button>
           </div>
         )}
