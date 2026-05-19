@@ -135,8 +135,8 @@ function HealthMetricRow({ icon, label, value, max, level }: {
 // ═══════ BADGE PRO HEADER (admin vê todas instâncias) ═══════
 
 export function InstanceHealthHeaderBadge() {
-  const { role } = useAuth();
-  const isAdmin = role === "admin" || role === "comercial";
+  const { teamMember: hbTeamMember } = useAuth();
+  const isAdmin = hbTeamMember?.role === "admin" || hbTeamMember?.role === "diretor";
   const { data: allHealth } = useAllInstancesHealth();
   const [showModal, setShowModal] = useState(false);
 

@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = teamMember?.role === 'admin';
   const isCS = teamMember?.role === 'cs' || teamMember?.team === 'cs';
   const isComercial = teamMember?.role === 'comercial' || teamMember?.role === 'closer' || teamMember?.role === 'sdr' || teamMember?.team === 'comercial';
-  const canAccessSettings = teamMember?.role === 'admin' || teamMember?.role === 'comercial';
+  const canAccessSettings = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
   const canAccessHR = teamMember?.role !== 'closer' && teamMember?.role !== 'sdr';
   const canManageUsers = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
 

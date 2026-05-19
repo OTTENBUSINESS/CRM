@@ -134,7 +134,7 @@ import {
 export default function SalesSettings() {
   const { toast } = useToast();
   const { teamMember } = useAuth();
-  const isAdmin = teamMember?.role === 'admin';
+  const isAdmin = teamMember?.role === 'admin' || teamMember?.role === 'diretor';
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") || "templates";
   const [activeTab, setActiveTab] = useState(tabFromUrl);

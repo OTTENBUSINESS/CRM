@@ -246,7 +246,7 @@ const navigationSections: NavSection[] = [
 
 export default function SettingsUnified() {
   const { teamMember, signOut } = useAuth();
-  const isAdmin = teamMember?.role === "admin";
+  const isAdmin = teamMember?.role === "admin" || teamMember?.role === "diretor";
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = searchParams.get("s") || "modulos";
 

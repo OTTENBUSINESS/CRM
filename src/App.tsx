@@ -131,6 +131,14 @@ const queryClient = new QueryClient({
   },
 });
 
+// Rota protegida apenas para admin e diretor
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { canAccessSettings, loading } = useAuth();
+  if (loading) return null;
+  if (!canAccessSettings) return <Navigate to="/comercial" replace />;
+  return <>{children}</>;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isPasswordRecovery, teamMember, signOut } = useAuth();
 
@@ -208,10 +216,10 @@ const AppRoutes = () => {
       {/* Home → Dashboard Comercial */}
       <Route path="/" element={<Navigate to="/comercial" replace />} />
 
-      {/* Configurações */}
-      <Route path="/configuracoes" element={<ProtectedRoute><SettingsUnified /></ProtectedRoute>} />
-      <Route path="/settings" element={<Navigate to="/configuracoes" replace />} />
-      <Route path="/whatsapp" element={<Navigate to="/configuracoes?s=whatsapp" replace />} />
+      {/* Configurações — apenas admin e diretor */}
+      <Route path="/configuracoes" element={<ProtectedRoute><AdminRoute><SettingsUnified /></AdminRoute></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><AdminRoute><Navigate to="/configuracoes" replace /></AdminRoute></ProtectedRoute>} />
+      <Route path="/whatsapp" element={<ProtectedRoute><AdminRoute><Navigate to="/configuracoes?s=whatsapp" replace /></AdminRoute></ProtectedRoute>} />
       <Route path="/meu-whatsapp" element={<ProtectedRoute><React.Suspense fallback={<div />}><MyWhatsApp /></React.Suspense></ProtectedRoute>} />
 
       {/* Sales/Commercial routes */}

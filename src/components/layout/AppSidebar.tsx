@@ -89,9 +89,7 @@ const sections: NavSection[] = [
   },
 ];
 
-const bottomItems: NavItem[] = [
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
-];
+const bottomItems: NavItem[] = [];
 
 /* ---------------------------------------------------------------
  * AppSidebar
@@ -223,20 +221,19 @@ export function AppSidebar() {
               </p>
             )}
             {canManageUsers && (
-              <NavItemLink
-                item={{ title: "Usuários", url: "/admin/usuarios", icon: ShieldCheck }}
-                active={isActive("/admin/usuarios")}
-                isCollapsed={isCollapsed}
-              />
+              <>
+                <NavItemLink
+                  item={{ title: "Configurações", url: "/configuracoes", icon: Settings }}
+                  active={isActive("/configuracoes")}
+                  isCollapsed={isCollapsed}
+                />
+                <NavItemLink
+                  item={{ title: "Usuários", url: "/admin/usuarios", icon: ShieldCheck }}
+                  active={isActive("/admin/usuarios")}
+                  isCollapsed={isCollapsed}
+                />
+              </>
             )}
-            {bottomItems.map((item) => (
-              <NavItemLink
-                key={item.url}
-                item={item}
-                active={isActive(item.url)}
-                isCollapsed={isCollapsed}
-              />
-            ))}
           </div>
         </SidebarContent>
 
