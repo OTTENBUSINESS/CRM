@@ -28,12 +28,20 @@ async function uploadAvatarToStorage(imageUrl: string, leadId: string): Promise<
 }
 
 // Buscar detalhes completos do contato via UAZAPI
+// NOTA: só funciona com UAZAPI. Para Evolution API, retorna null (usa pushName do payload)
 export async function fetchContactDetailsFromUazapi(
   phone: string,
   apiKey: string | null,
   apiUrl: string | null
 ): Promise<{ name: string | null; avatar: string | null } | null> {
   if (!apiKey || !phone || !apiUrl) return null;
+
+  // Evolution API tem endpoint diferente — pular busca para não logar 404 desnecessário
+  const isEvolutionApi = apiUrl.includes('evolution') || apiUrl.includes('evo-api');
+  if (isEvolutionApi) {
+    console.log('[Webhook] Evolution API detectada, pulando fetch de detalhes do contato (usa pushName do payload)');
+    return null;
+  }
 
   try {
     const cleanPhone = phone.replace(/\D/g, '');
@@ -46,9 +54,9 @@ export async function fetchContactDetailsFromUazapi(
         'Content-Type': 'application/json',
         'token': apiKey,
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         number: cleanPhone,
-        preview: false 
+        preview: false
       }),
     });
 
@@ -58,11 +66,11 @@ export async function fetchContactDetailsFromUazapi(
     }
 
     const data = await response.json();
-    
+
     // Extrair nome e foto da resposta
     const name = data.name || data.wa_name || data.lead_fullName || data.lead_name || null;
     const avatar = data.image || data.imagePreview || null;
-    
+
     console.log('[Webhook] Contact details result:', { name, hasAvatar: !!avatar });
     return { name, avatar };
   } catch (error) {
@@ -96,7 +104,7 @@ export async function getOrCreateContactWithProfilePic(
     .select('id, name, phone, photo_url')
     .ilike('phone', `%${last8Digits}`)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existingLead) {
     console.log('[Webhook] Found existing lead:', existingLead.id, 'phone:', existingLead.phone);
@@ -167,10 +175,10 @@ export async function getOrCreateContactWithProfilePic(
   try {
     const { data: firstStage } = await supabase
       .from('sales_pipeline_stages')
-      .select('id, pipeline_id')
+      .select('id, pipeline_id, tenant_id')
       .order('position', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (firstStage) {
       const { error: dealError } = await supabase
@@ -180,8 +188,9 @@ export async function getOrCreateContactWithProfilePic(
           pipeline_id: firstStage.pipeline_id,
           pipeline_stage_id: firstStage.id,
           title: leadName,
-          // tenant_id omitido: o banco usa get_tenant_id() como default
-          // (passar newLead.tenant_id causava null → viola NOT NULL constraint)
+          status: 'open',
+          // Passa tenant_id explicitamente da stage (get_tenant_id() retorna null no service role)
+          tenant_id: firstStage.tenant_id,
           metadata: { source: 'whatsapp' },
         });
 

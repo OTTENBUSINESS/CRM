@@ -42,8 +42,9 @@ function normalizeWebhookPayload(raw: any): any {
   if (mapped === 'skip') return { EventType: 'skip' };
 
   if (normalizedEvent === 'messages.upsert') {
-    // Ignorar mensagens enviadas pela própria API
-    if (key.fromMe && (data.source === 'api' || raw.destination)) {
+    // Ignorar mensagens enviadas pela própria API (source='api')
+    // NÃO usar raw.destination pois esse campo existe em TODOS os payloads Evolution API
+    if (key.fromMe && data.source === 'api') {
       return { EventType: 'skip' };
     }
 
@@ -62,6 +63,8 @@ function normalizeWebhookPayload(raw: any): any {
       EventType: 'messages',
       instance: raw.instance,
       apikey: raw.apikey,
+      // Preservar messageTimestamp (em segundos — multiplicar por 1000 ao salvar no sent_at)
+      messageTimestamp: data.messageTimestamp || null,
       event: {
         message: {
           id: key.id,
@@ -544,8 +547,9 @@ async function handleIncomingMessage(
       sender_name: pushName,
       is_from_me: fromMe,
       media_url: mediaUrl,
+      // messageTimestamp da Evolution API vem em SEGUNDOS — multiplicar por 1000 para ms
       sent_at: payload.messageTimestamp
-        ? new Date(payload.messageTimestamp).toISOString()
+        ? new Date(Number(payload.messageTimestamp) * 1000).toISOString()
         : new Date().toISOString(),
       metadata: payload,
     })

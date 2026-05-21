@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { PipelineStage, Deal, PipelineColumn } from '@/types/sales.types';
 
@@ -478,6 +479,36 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
       return pipeline;
     },
   });
+};
+
+// Realtime subscription: invalida o cache do Kanban quando um novo deal é inserido via webhook
+// Garante que o lead aparece imediatamente sem precisar recarregar a página
+export const usePipelineDealsRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('deals-realtime-kanban')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'deals' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'deals' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 };
 
 // Get pipeline stats (deals count and value by stage)

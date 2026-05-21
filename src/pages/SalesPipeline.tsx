@@ -16,7 +16,7 @@ import { BatchImportDealsModal } from "@/components/sales/BatchImportDealsModal"
 import { BulkWhatsAppModal } from "@/components/sales/BulkWhatsAppModal";
 import { SalesAIChat } from "@/components/sales/ai";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { usePipelineDeals } from "@/hooks/useSalesPipeline";
+import { usePipelineDeals, usePipelineDealsRealtime } from "@/hooks/useSalesPipeline";
 import { usePipelines } from "@/hooks/usePipelineConfig";
 // Webinar configs foi removido junto com o m\u00f3dulo de eventos.
 const useWebinarConfigs = () => ({ data: [] as Array<{ id: string; name: string }> });
@@ -218,6 +218,9 @@ export function PipelineBoardContent() {
     isLoading,
     refetch,
   } = usePipelineDeals(salesRepId, activePipelineId, isWebinarPipeline ? webinarFilter : undefined);
+
+  // Realtime: atualiza o Kanban automaticamente quando novo lead chega via WhatsApp
+  usePipelineDealsRealtime();
 
   const moveDealMutation = useMoveDealStage();
   const transferMutation = useTransferDealPipeline();
