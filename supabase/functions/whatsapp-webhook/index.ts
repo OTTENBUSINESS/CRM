@@ -29,6 +29,12 @@ function normalizeWebhookPayload(raw: any): any {
   const key = data.key || {};
   const message = data.message || {};
 
+  // WhatsApp novo formato @lid (Linked Device ID): preferir remoteJidAlt (número real)
+  // Sem isso, o lead seria criado com o LID numérico em vez do número de telefone
+  const effectiveRemoteJid = (key.remoteJidAlt && key.remoteJidAlt.includes('@s.whatsapp.net'))
+    ? key.remoteJidAlt
+    : key.remoteJid;
+
   const evMap: Record<string, string> = {
     'messages.upsert': 'messages',
     'messages.update': 'messages_update',
@@ -68,10 +74,10 @@ function normalizeWebhookPayload(raw: any): any {
       event: {
         message: {
           id: key.id,
-          chatid: key.remoteJid,
+          chatid: effectiveRemoteJid,
           fromMe: key.fromMe ?? false,
-          isGroup: key.remoteJid?.includes('@g.us') ?? false,
-          sender: key.remoteJid,
+          isGroup: effectiveRemoteJid?.includes('@g.us') ?? false,
+          sender: effectiveRemoteJid,
           senderName: data.pushName || '',
           messageType,
           content: {
