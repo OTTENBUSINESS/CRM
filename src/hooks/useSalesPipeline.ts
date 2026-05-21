@@ -481,31 +481,53 @@ export const usePipelineDeals = (salesRepId?: string, pipelineId?: string, webin
   });
 };
 
-// Realtime subscription: invalida o cache do Kanban quando um novo deal é inserido via webhook
+// Realtime subscription: invalida o cache do Kanban quando deals mudam OU mensagens novas chegam
 // Garante que o lead aparece imediatamente sem precisar recarregar a página
 export const usePipelineDealsRealtime = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const debouncedInvalidate = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
+      }, 2000); // 2s debounce — agrupa rajadas de mensagens
+    };
+
     const channel = supabase
       .channel('deals-realtime-kanban')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'deals' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
+          console.log('[Realtime] Novo deal detectado — atualizando Kanban');
+          debouncedInvalidate();
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'deals' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['pipeline-deals'] });
+          console.log('[Realtime] Deal atualizado — atualizando Kanban');
+          debouncedInvalidate();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' },
+        () => {
+          console.log('[Realtime] Nova mensagem WhatsApp — atualizando Kanban');
+          debouncedInvalidate();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Kanban subscription status:', status);
+      });
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

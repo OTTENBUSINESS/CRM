@@ -143,6 +143,44 @@ export async function getOrCreateContactWithProfilePic(
       console.log('[Webhook] Updated lead:', existingLead.id, Object.keys(updates));
     }
 
+    // Garantir que lead existente sem deal apareça no Kanban
+    // (pode acontecer por race condition na criação em lote ou falha anterior)
+    const { data: existingDeal } = await supabase
+      .from('deals')
+      .select('id')
+      .eq('lead_id', existingLead.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingDeal) {
+      console.log('[Webhook] Lead sem deal detectado, criando automaticamente:', existingLead.id);
+      const { data: firstStage } = await supabase
+        .from('sales_pipeline_stages')
+        .select('id, pipeline_id, tenant_id')
+        .order('position', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstStage) {
+        const { error: dealError } = await supabase
+          .from('deals')
+          .insert({
+            lead_id: existingLead.id,
+            pipeline_id: firstStage.pipeline_id,
+            pipeline_stage_id: firstStage.id,
+            title: existingLead.name || cleanPhone,
+            status: 'open',
+            tenant_id: firstStage.tenant_id,
+            metadata: { source: 'whatsapp' },
+          });
+        if (dealError) {
+          console.error('[Webhook] Erro ao criar deal para lead existente:', dealError.message);
+        } else {
+          console.log('[Webhook] ✅ Deal criado para lead existente sem deal:', existingLead.id);
+        }
+      }
+    }
+
     return existingLead.id;
   }
 

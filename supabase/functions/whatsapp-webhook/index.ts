@@ -131,7 +131,7 @@ import { MediaData, downloadAndSaveMedia, downloadAndDecryptAudio, transcribeAud
 import { callTicketRouterLLM, TicketDecisionAction } from "./llm.ts";
 import { getOrCreateContactWithProfilePic } from "./contacts.ts";
 import { getOrCreateGroup } from "./groups.ts";
-import { getIntegrationKey } from "../_shared/config.ts";
+import { getIntegrationKey } from "./config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
