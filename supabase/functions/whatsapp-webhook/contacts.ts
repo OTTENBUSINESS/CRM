@@ -79,6 +79,17 @@ export async function fetchContactDetailsFromUazapi(
   }
 }
 
+// Detecta LID (Linked Device ID) — mesma lógica do index.ts
+function isLikelyLidNumber(phone: string): boolean {
+  if (!phone) return false;
+  const digits = phone.replace(/@.*/, '').replace(/\D/g, '');
+  if (!digits || digits.length < 8) return false;
+  if (digits.startsWith('55') && digits.length >= 12 && digits.length <= 13) return false;
+  if (digits.length >= 10 && digits.length <= 11) return false;
+  if (digits.length <= 13) return false;
+  return true;
+}
+
 // Buscar ou criar lead com dados completos da UAZAPI
 // REGRA: Busca pelos últimos 8 dígitos do telefone (da direita para esquerda)
 // NOTA: Usa tabela 'leads' como entidade central (não 'contacts')
@@ -90,8 +101,13 @@ export async function getOrCreateContactWithProfilePic(
   apiUrl: string | null
 ): Promise<string | null> {
   const cleanPhone = phone.replace(/\D/g, '').replace(/@.*/, '');
-  
+
   if (!cleanPhone) return null;
+
+  if (isLikelyLidNumber(cleanPhone)) {
+    console.warn('[Webhook] Rejeitando lead com número LID:', cleanPhone);
+    return null;
+  }
 
   // Pegar os últimos 8 dígitos para busca
   const last8Digits = cleanPhone.slice(-8);

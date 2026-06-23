@@ -2,6 +2,31 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// Detecta se um JID/número é provavelmente um LID (Linked Device ID) do WhatsApp
+// LIDs são IDs internos que NÃO são telefones reais — podem aparecer com @s.whatsapp.net
+function isLikelyLidNumber(jid: string | null | undefined): boolean {
+  if (!jid) return false;
+  if (jid.includes('@lid')) return true;
+  const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
+  if (!digits || digits.length < 8) return false;
+  // Números BR válidos: 55 + DDD(2) + num(8-9) = 12-13 dígitos
+  if (digits.startsWith('55') && digits.length >= 12 && digits.length <= 13) return false;
+  // Local sem DDI: DDD(2) + num(8-9) = 10-11 dígitos
+  if (digits.length >= 10 && digits.length <= 11) return false;
+  // Internacionais comuns (US, PT, UK, etc) com 8-13 dígitos
+  if (digits.length <= 13) return false;
+  // 14+ dígitos sem padrão BR = provavelmente LID
+  return true;
+}
+
+// Entre dois JIDs, escolhe o que parece ser um telefone real (não LID)
+function pickRealJid(remoteJid: string | null, remoteJidAlt: string | null): string {
+  if (remoteJidAlt && !isLikelyLidNumber(remoteJidAlt)) return remoteJidAlt;
+  if (remoteJid && !isLikelyLidNumber(remoteJid)) return remoteJid;
+  // Ambos LID ou ausentes — usar o que existir (logar warning no caller)
+  return remoteJidAlt || remoteJid || '';
+}
+
 /**
  * Normaliza payload da Evolution API para o formato interno (UAZAPI-like).
  * Evolution API usa nomes de evento com ponto (messages.upsert, connection.update)
@@ -29,11 +54,12 @@ function normalizeWebhookPayload(raw: any): any {
   const key = data.key || {};
   const message = data.message || {};
 
-  // WhatsApp novo formato @lid (Linked Device ID): preferir remoteJidAlt (número real)
-  // Sem isso, o lead seria criado com o LID numérico em vez do número de telefone
-  const effectiveRemoteJid = (key.remoteJidAlt && key.remoteJidAlt.includes('@s.whatsapp.net'))
-    ? key.remoteJidAlt
-    : key.remoteJid;
+  // WhatsApp LID (Linked Device ID): escolher o JID que é telefone real
+  // LIDs podem vir tanto com @lid quanto com @s.whatsapp.net (14+ dígitos)
+  const effectiveRemoteJid = pickRealJid(key.remoteJid, key.remoteJidAlt);
+  if (isLikelyLidNumber(key.remoteJid) || isLikelyLidNumber(key.remoteJidAlt)) {
+    console.log('[Webhook] LID detectado — remoteJid:', key.remoteJid, 'remoteJidAlt:', key.remoteJidAlt, '→ usando:', effectiveRemoteJid);
+  }
 
   const evMap: Record<string, string> = {
     'messages.upsert': 'messages',
@@ -292,7 +318,7 @@ async function handleIncomingMessage(
 
   let senderPhone;
   let actualContactPhone;
-  
+
   if (fromMe) {
     actualContactPhone = String(remoteJid).replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
     senderPhone = payload.owner || '553123917958';
@@ -300,8 +326,13 @@ async function handleIncomingMessage(
     senderPhone = payload.sender_pn || payload.sender || payload.Sender || remoteJid;
     actualContactPhone = String(senderPhone).replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
   }
-  
+
   senderPhone = String(senderPhone).replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
+
+  // Detectar e logar se o telefone extraído é um LID disfarçado
+  if (isLikelyLidNumber(actualContactPhone)) {
+    console.warn('[Webhook] ⚠️ LID detectado como telefone do contato:', actualContactPhone, '— lead pode ficar com número errado');
+  }
   const pushName = payload.senderName || payload.SenderName || payload.name || senderPhone;
 
   const contentObj = payload.content || {};
