@@ -21,10 +21,16 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-function asaasBase(key: string): string {
-  return key.includes("hmlg") || key.includes("sandbox")
-    ? "https://api-sandbox.asaas.com/v3"
-    : "https://api.asaas.com/v3";
+const SANDBOX = "https://api-sandbox.asaas.com/v3";
+const PROD = "https://api.asaas.com/v3";
+
+// Ambiente explícito via config ASAAS_ENV (sandbox|production).
+// Fallback: detecta pela própria chave (sandbox costuma conter "hmlg").
+async function asaasBase(supabase: ReturnType<typeof createClient>, key: string): Promise<string> {
+  const env = (await getIntegrationKey(supabase, "ASAAS_ENV") || "").toLowerCase().trim();
+  if (env.startsWith("sand") || env.startsWith("homolog")) return SANDBOX;
+  if (env.startsWith("prod")) return PROD;
+  return key.includes("hmlg") || key.includes("sandbox") ? SANDBOX : PROD;
 }
 
 const digits = (s?: string | null) => (s || "").replace(/\D/g, "");
@@ -51,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = await getIntegrationKey(supabase, "ASAAS_API_KEY");
     if (!apiKey) return json({ error: "ASAAS_API_KEY não configurada. Preencha em Configurações → Integrações." }, 400);
-    const base = asaasBase(apiKey);
+    const base = await asaasBase(supabase, apiKey);
     const headers = { "Content-Type": "application/json", "access_token": apiKey };
 
     // 1) Carrega o pagamento
