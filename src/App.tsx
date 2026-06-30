@@ -218,6 +218,10 @@ const AppRoutes = () => {
       {/* Home → Dashboard Comercial */}
       <Route path="/" element={<Navigate to="/comercial" replace />} />
 
+      {/* Atalhos/PWA antigos apontavam pra /app — redireciona pra home */}
+      <Route path="/app" element={<Navigate to="/comercial" replace />} />
+      <Route path="/app/*" element={<Navigate to="/comercial" replace />} />
+
       {/* Configurações — apenas admin e diretor */}
       <Route path="/configuracoes" element={<ProtectedRoute><AdminRoute><SettingsUnified /></AdminRoute></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AdminRoute><Navigate to="/configuracoes" replace /></AdminRoute></ProtectedRoute>} />
