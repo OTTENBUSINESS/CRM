@@ -27,6 +27,7 @@ import {
   Settings,
   LogOut,
   LayoutGrid,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ import { ThemeSection } from "@/components/settings/sections/ThemeSection";
 import { IntegrationsSection } from "@/components/settings/sections/IntegrationsSection";
 import { WhatsAppInstancesSection } from "@/components/settings/sections/WhatsAppInstancesSection";
 import { ModulesSection } from "@/components/settings/sections/ModulesSection";
+import { SecuritySection } from "@/components/settings/sections/SecuritySection";
 import { NotificationRulesBuilder } from "@/components/settings/NotificationRulesBuilder";
 import { WhatsAppTaskBotConfig } from "@/components/settings/WhatsAppTaskBotConfig";
 
@@ -101,6 +103,13 @@ const navigationSections: NavSection[] = [
         label: "Aparência",
         icon: Palette,
         description: "Escolha entre tema claro ou escuro. A mudança é aplicada instantaneamente.",
+      },
+      {
+        id: "seguranca",
+        label: "Segurança",
+        icon: ShieldCheck,
+        description: "Proteja sua conta com verificação em 2 etapas (2FA). A cada login, além da senha, será pedido um código de 6 dígitos do seu app autenticador.",
+        hint: "Verificação em 2 etapas (2FA)",
       },
       {
         id: "google-calendar",
@@ -378,6 +387,8 @@ function SettingsContent({ section }: { section: string }) {
       return <ProfileSection />;
     case "aparencia":
       return <ThemeSection />;
+    case "seguranca":
+      return <SecuritySection />;
     case "google-calendar":
       return <GoogleCalendarSection />;
 

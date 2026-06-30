@@ -15,6 +15,7 @@ import { FocusModeProvider } from "@/contexts/FocusModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { FocusModeOverlay } from "@/components/focus-mode/FocusModeOverlay";
+import { MfaGate } from "@/components/auth/MfaGate";
 
 // Error Boundary para componentes auxiliares (toast discreto)
 class ErrorBoundary extends Component<{ children: ReactNode; name?: string }, { hasError: boolean; error?: Error }> {
@@ -182,7 +183,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  // Porteiro de 2FA: se a conta tem 2FA ativo, exige o código antes de liberar.
+  return <MfaGate>{children}</MfaGate>;
 }
 
 // Escuta eventos 'app-navigate' disparados de fora do BrowserRouter (ex: notificações)
