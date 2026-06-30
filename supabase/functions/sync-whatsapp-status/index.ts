@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isAuthorizedCaller, unauthorizedResponse } from "../_shared/requireCaller.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -10,6 +11,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req: Request) => {
+  if (req.method !== "OPTIONS" && !isAuthorizedCaller(req)) return unauthorizedResponse();
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isAuthorizedCaller, unauthorizedResponse } from "../_shared/requireCaller.ts";
 import { getIntegrationKey } from "../_shared/config.ts";
 
 const corsHeaders = {
@@ -171,6 +172,7 @@ Fale como um executivo brasileiro em reunião de vídeo. Natural, sem formalidad
 
 // ─── Handler ──────────────────────────────────────────────────────────
 serve(async (req) => {
+  if (req.method !== "OPTIONS" && !isAuthorizedCaller(req)) return unauthorizedResponse();
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

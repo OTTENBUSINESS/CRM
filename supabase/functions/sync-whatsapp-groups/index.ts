@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { isAuthorizedCaller, unauthorizedResponse } from "../_shared/requireCaller.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -25,6 +26,7 @@ interface UAZAPIGroup {
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS" && !isAuthorizedCaller(req)) return unauthorizedResponse();
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

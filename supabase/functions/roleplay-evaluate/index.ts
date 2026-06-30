@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isAuthorizedCaller, unauthorizedResponse } from "../_shared/requireCaller.ts";
 import { getIntegrationKey } from "../_shared/config.ts";
 
 const corsHeaders = {
@@ -89,6 +90,7 @@ REGRAS:
 5. Retorne APENAS o JSON, sem markdown, sem backticks.`;
 
 serve(async (req) => {
+  if (req.method !== "OPTIONS" && !isAuthorizedCaller(req)) return unauthorizedResponse();
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getIntegrationKey } from "../_shared/config.ts";
+import { isAuthorizedCaller, unauthorizedResponse } from "../_shared/requireCaller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7844,6 +7845,11 @@ async function processCadence(supabase: any): Promise<{ processed: number; error
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Só service_role (crons/triggers) ou usuário logado (frontend). Bloqueia anon.
+  if (!isAuthorizedCaller(req)) {
+    return unauthorizedResponse(corsHeaders);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
