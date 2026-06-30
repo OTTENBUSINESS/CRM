@@ -2,7 +2,7 @@
   "name": "OTTEN CRM",
   "short_name": "OTTEN CRM",
   "description": "OTTEN CRM — Painel de Controle de Vendas",
-  "start_url": "/app/",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
