@@ -470,21 +470,15 @@ export default function Login() {
             </motion.div>
           </form>
 
-          {/* Toggle sign up / login */}
+          {/* Cadastro público desativado — novos usuários são criados por um
+              administrador dentro do CRM (Configurações → Usuários). */}
           <motion.p
             className="text-center text-[#f8f6f1]/35 text-sm mt-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
           >
-            {isSignUp ? 'Já tem uma conta?' : 'Não tem conta?'}{' '}
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-amber-400 hover:text-amber-300 transition-colors font-medium"
-            >
-              {isSignUp ? 'Entrar' : 'Criar conta'}
-            </button>
+            Acesso restrito. Solicite sua conta a um administrador.
           </motion.p>
 
           {/* Footer */}
