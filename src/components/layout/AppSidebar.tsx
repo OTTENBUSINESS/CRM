@@ -15,6 +15,12 @@ import {
   TrendingUp,
   User2,
   ShieldCheck,
+  Megaphone,
+  Mail,
+  Send,
+  Zap,
+  FileText,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -70,6 +76,18 @@ const sections: NavSection[] = [
       { title: "Pipeline", url: "/comercial/pipeline", icon: Kanban },
       { title: "Inbox", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Treinamento", url: "/comercial/treinamento", icon: BookOpen },
+    ],
+  },
+  {
+    id: "marketing",
+    label: "Marketing",
+    items: [
+      { title: "Visão geral", url: "/marketing", icon: Megaphone, exact: true },
+      { title: "Campanhas Email", url: "/marketing/campanhas", icon: Mail },
+      { title: "Campanhas WhatsApp", url: "/comercial/campanhas", icon: Send },
+      { title: "Automações", url: "/marketing/automacoes", icon: Zap },
+      { title: "Templates Email", url: "/marketing/templates", icon: FileText },
+      { title: "Templates WhatsApp", url: "/marketing/whatsapp-templates", icon: MessageCircle },
     ],
   },
   {

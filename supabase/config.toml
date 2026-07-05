@@ -170,6 +170,32 @@ verify_jwt = false
 verify_jwt = false
 
 # ============================================================
+# MÓDULO MARKETING — webhook, público e crons
+# ============================================================
+
+# Webhook do Resend (eventos delivered/opened/clicked/bounced) — valida assinatura Svix
+[functions.process-email-event]
+verify_jwt = false
+
+# Link público de descadastro de email (LGPD) — valida token
+[functions.unsubscribe]
+verify_jwt = false
+
+# Crons/triggers de automação e campanhas
+[functions.email-automation-tick]
+verify_jwt = false
+
+[functions.email-automation-trigger]
+verify_jwt = false
+
+[functions.campaign-processor]
+verify_jwt = false
+
+# NOTA: send-email-campaign, send-whatsapp-cloud, sync-whatsapp-templates e
+# create-whatsapp-template ficam no DEFAULT (verify_jwt = true) — só chamadas
+# com JWT (usuário logado no front, ou service_role nos invokes internos).
+
+# ============================================================
 # DEFAULT (verify_jwt = true) — não listadas aqui
 # ============================================================
 # Todas as outras funções (~40) herdam o default `verify_jwt = true`,

@@ -18,10 +18,13 @@ const DEFAULT_TENANT = "00000000-0000-0000-0000-000000000001";
 // Mapeia o evento do Asaas pro status interno do pagamento.
 function statusFor(event: string): { status: string | null; paid: boolean } {
   switch (event) {
+    // O CRM considera pago quando status === 'received' OU 'confirmed'
+    // (trigger update_deal_payment_totals + useDealPayments). NÃO usar 'paid'.
     case "PAYMENT_CONFIRMED":
+      return { status: "confirmed", paid: true };
     case "PAYMENT_RECEIVED":
     case "PAYMENT_RECEIVED_IN_CASH":
-      return { status: "paid", paid: true };
+      return { status: "received", paid: true };
     case "PAYMENT_OVERDUE":
       return { status: "overdue", paid: false };
     case "PAYMENT_REFUNDED":

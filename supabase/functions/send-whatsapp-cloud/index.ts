@@ -1,17 +1,25 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { getIntegrationKey, requireIntegrationKey } from "../_shared/config.ts";
 
 /**
- * WhatsApp Cloud API — Envio de mensagens
+ * WhatsApp Cloud API (Meta oficial) — Envio de mensagens (single-tenant)
  *
- * Suporta 2 modos:
- * 1. Template (primeiro contato) — action: "send_template"
- * 2. Texto livre (session, após lead responder) — action: "send_text"
+ * Princípios:
+ *   - ZERO hardcoded: credentials resolvidas no banco a cada request
+ *   - Identifica instância via instance_id OU pega primeira ativa (provider='meta_cloud')
+ *   - Coexiste com UAZAPI: só processa instâncias com provider='meta_cloud'
  *
- * Uso pelo ai-sales-agent:
- * - Step 0 (primeiro contato): send_template
- * - Conversação normal: send_text
+ * Uso:
+ *   POST { instance_id, action, phone, ... }
+ *   POST { action, phone, ... }  (pega primeira instância meta_cloud)
+ *
+ * Actions:
+ *   - send_text: { text } ou { message }
+ *   - send_template: { template_name, template_params }
+ *   - send_image: { media_url, caption }
+ *   - send_document: { media_url, caption, filename }
+ *   - send_audio: { media_url }
+ *   - send_video: { media_url, caption }
  */
 
 const corsHeaders = {
@@ -21,26 +29,15 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const GRAPH_API_VERSION = "v22.0";
 
-// Config lida do banco (tabela `config`, via UI /configuracoes > Integrações).
-// NUNCA hardcode valores — use getIntegrationKey.
-interface CloudApiCfg {
-  token: string;
-  phoneNumberId: string;
-  geminiKey: string | null;
-  graphUrl: string;
-}
-
-async function loadCfg(supabase: any): Promise<CloudApiCfg> {
-  const token = await requireIntegrationKey(supabase, "WHATSAPP_CLOUD_TOKEN");
-  const phoneNumberId = await requireIntegrationKey(supabase, "WHATSAPP_PHONE_NUMBER_ID");
-  const geminiKey = await getIntegrationKey(supabase, "GEMINI_API_KEY");
-  return {
-    token,
-    phoneNumberId,
-    geminiKey,
-    graphUrl: `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
-  };
+interface CloudInstance {
+  id: string;
+  name: string;
+  api_key: string;           // token permanente da Meta
+  phone_number_id: string;
+  business_account_id: string | null;
+  tenant_id: string;
 }
 
 Deno.serve(async (req) => {
@@ -50,156 +47,156 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const cfg = await loadCfg(supabase);
     const body = await req.json();
-    const { action, phone, lead_id, sent_by, sent_by_name } = body;
+    const { action, phone, lead_id, sent_by, sent_by_name, sent_by_team_member_id, sent_by_agent_id, instance_id } = body;
 
     if (!phone) {
       return jsonRes({ error: "phone required" }, 400);
+    }
+
+    // Resolver instância Cloud API
+    const instance = await resolveInstance(supabase, { instance_id });
+    if (!instance) {
+      return jsonRes(
+        { error: "Nenhuma instância Cloud API ativa encontrada" },
+        404
+      );
     }
 
     // Normalizar telefone
     const cleanPhone = phone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
-    // Buscar instância oficial
-    const instanceId = await getOfficialInstanceId(supabase);
+    const graphUrl = `https://graph.facebook.com/${GRAPH_API_VERSION}/${instance.phone_number_id}/messages`;
 
-    let result;
+    let result: { ok: boolean; data: any; content: string; messageType: string; extraMeta?: any };
 
     switch (action) {
       case "send_template":
-        result = await sendTemplate(body, formattedPhone, cfg, supabase);
+        result = await sendTemplate(body, formattedPhone, graphUrl, instance, supabase);
         break;
-
       case "send_text":
-        result = await sendText(body, formattedPhone, cfg);
+        result = await sendText(body, formattedPhone, graphUrl, instance);
         break;
-
       case "send_image":
-        result = await sendMedia(body, formattedPhone, "image", cfg);
+        result = await sendMedia(body, formattedPhone, "image", graphUrl, instance);
         break;
-
       case "send_document":
-        result = await sendMedia(body, formattedPhone, "document", cfg);
+        result = await sendMedia(body, formattedPhone, "document", graphUrl, instance);
         break;
-
       case "send_audio":
-        result = await sendMedia(body, formattedPhone, "audio", cfg);
+        result = await sendAudioViaUpload(body, formattedPhone, graphUrl, instance);
         break;
-
       case "send_video":
-        result = await sendMedia(body, formattedPhone, "video", cfg);
+        result = await sendMedia(body, formattedPhone, "video", graphUrl, instance);
         break;
-
       default:
-        // Default: se tem template_name → template, senão → text
         if (body.template_name) {
-          result = await sendTemplate(body, formattedPhone, cfg, supabase);
+          result = await sendTemplate(body, formattedPhone, graphUrl, instance, supabase);
         } else if (body.text || body.message) {
-          result = await sendText(body, formattedPhone, cfg);
+          result = await sendText(body, formattedPhone, graphUrl, instance);
         } else {
-          return jsonRes({ error: "action required (send_template, send_text)" }, 400);
+          return jsonRes({ error: "action obrigatória (send_template, send_text, send_image, ...)" }, 400);
         }
     }
 
     if (!result.ok) {
-      console.error("[Cloud API] Error:", JSON.stringify(result.data));
-      return jsonRes({ error: result.data.error?.message || "Failed to send", details: result.data }, 500);
+      console.error(`[cloud-api] Error:`, JSON.stringify(result.data));
+      return jsonRes(
+        { error: result.data.error?.message || "Falha ao enviar", details: result.data },
+        500
+      );
     }
 
     const messageId = result.data.messages?.[0]?.id;
-    console.log(`[Cloud API] Sent! Message ID: ${messageId}`);
+    console.log(`[cloud-api] Sent. message_id=${messageId}`);
 
-    // Salvar mensagem no banco
-    if (lead_id && instanceId) {
-      await supabase.from("whatsapp_messages").insert({
-        instance_id: instanceId,
-        remote_jid: `${formattedPhone}@s.whatsapp.net`,
-        message_id: messageId || `cloud_${Date.now()}`,
-        message_type: result.messageType || "Conversation",
-        content: result.content,
-        media_url: result.extraMeta?.media_url || null,
-        is_from_me: true,
-        sent_at: new Date().toISOString(),
-        lead_id,
-        metadata: { sent_by: sent_by || "ai_agent", sent_by_name: sent_by_name || null, cloud_api: true, ...(result.extraMeta || {}) },
-      });
-    }
+    // Persistir na timeline
+    const isAgent = sent_by === 'ai_agent' || !!sent_by_agent_id;
+    await supabase.from("whatsapp_messages").insert({
+      tenant_id: instance.tenant_id,
+      instance_id: instance.id,
+      remote_jid: `${formattedPhone}@s.whatsapp.net`,
+      message_id: messageId || `cloud_${Date.now()}`,
+      message_type: result.messageType || "Conversation",
+      content: result.content,
+      media_url: result.extraMeta?.media_url || null,
+      is_from_me: true,
+      sent_at: new Date().toISOString(),
+      lead_id: lead_id || null,
+      sent_by_team_member_id: isAgent ? null : (sent_by_team_member_id || null),
+      sent_by_type: isAgent ? 'ai_agent' : (sent_by_team_member_id ? 'human' : null),
+      sent_by_agent_id: sent_by_agent_id || null,
+      sender_name: sent_by_name || null,
+      metadata: {
+        sent_by: sent_by || "system",
+        sent_by_name: sent_by_name || null,
+        cloud_api: true,
+        provider: "meta_cloud",
+        ...(result.extraMeta || {}),
+      },
+    });
 
-    return jsonRes({ success: true, message_id: messageId });
+    return jsonRes({ success: true, message_id: messageId, instance_id: instance.id });
   } catch (err: any) {
-    console.error("[Cloud API] Error:", err.message);
+    console.error("[cloud-api] Unexpected:", err.message);
     return jsonRes({ error: err.message }, 500);
   }
 });
 
-// ==================== SMART NAME NORMALIZATION ====================
+// ==================== RESOLVER INSTÂNCIA ====================
 
-async function smartNormalizeName(name: string, cfg: CloudApiCfg, leadId?: string): Promise<string> {
-  if (!name || name.trim().length < 2) return '';
-  if (!cfg.geminiKey) return name.split(' ')[0]; // Sem API key, pega primeiro trecho
+async function resolveInstance(
+  supabase: any,
+  params: { instance_id?: string }
+): Promise<CloudInstance | null> {
+  const baseSelect = "id, name, api_key, phone_number_id, business_account_id, tenant_id";
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfg.geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Extraia o primeiro nome REAL de uma pessoa a partir deste texto: "${name}".
-Regras:
-- Se parece um username de rede social (ex: "eliasrafaelrocha"), separe as palavras e retorne só o primeiro nome capitalizado (ex: "Elias")
-- Se é um número de telefone ou texto sem nome, retorne exatamente: INVALIDO
-- Se tem nome e sobrenome grudado (ex: "joaosilva"), separe e retorne só o primeiro nome capitalizado (ex: "João")
-- Se contém "|" ou bio de rede social (ex: "Frank Costa | IA para Negócios"), extraia só o primeiro nome (ex: "Frank")
-- Se o texto é um placeholder genérico como "Visitante", "Usuário", "Lead", "Cliente", "Teste", "Test", "Admin", retorne: INVALIDO
-- Retorne APENAS o primeiro nome, nada mais. Sem explicação.` }] }],
-          generationConfig: { temperature: 0, maxOutputTokens: 20 },
-        }),
-      }
-    );
-    const data = await res.json();
-    const result = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-
-    // Rejeitar variações de INVALIDO (com/sem acento, maiúsculo/minúsculo)
-    const resultUpper = result.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (resultUpper === 'INVALIDO' || result.length < 2 || result.length > 30) return '';
-
-    const cleanName = result.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
-    if (!cleanName || cleanName.length < 2) return '';
-
-    // Rejeitar placeholders que passaram pelo Gemini
-    const blacklist = ['invalido', 'visitante', 'teste', 'test', 'admin', 'usuario', 'lead', 'cliente', 'unknown', 'undefined', 'null'];
-    if (blacklist.includes(cleanName.toLowerCase())) return '';
-
-    console.log(`[Cloud API] Name normalized: "${name}" → "${cleanName}"`);
-
-    // Atualizar o lead no banco com o nome limpo (se tiver leadId)
-    if (leadId && cleanName) {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      await supabase.from('leads').update({ name: cleanName }).eq('id', leadId);
-      console.log(`[Cloud API] Lead ${leadId} name updated to "${cleanName}"`);
-    }
-
-    return cleanName;
-  } catch (err: any) {
-    console.error("[Cloud API] Name normalization error:", err.message);
-    return '';
+  // Prefer instance_id explícito
+  if (params.instance_id) {
+    const { data } = await supabase
+      .from("whatsapp_instances")
+      .select(baseSelect)
+      .eq("id", params.instance_id)
+      .eq("provider", "meta_cloud")
+      .maybeSingle();
+    return hydrateInstance(data);
   }
+
+  // Fallback: primeira instância meta_cloud
+  const { data } = await supabase
+    .from("whatsapp_instances")
+    .select(baseSelect)
+    .eq("provider", "meta_cloud")
+    .limit(1)
+    .maybeSingle();
+  return hydrateInstance(data);
+}
+
+function hydrateInstance(data: any): CloudInstance | null {
+  if (!data) return null;
+  if (!data.api_key || !data.phone_number_id) {
+    console.warn(`[cloud-api] Instance ${data.id} sem api_key ou phone_number_id`);
+    return null;
+  }
+  return data as CloudInstance;
 }
 
 // ==================== SEND TEMPLATE ====================
 
-async function sendTemplate(body: any, phone: string, cfg: CloudApiCfg, supabase?: any) {
-  const { template_name, template_params, lead_id } = body;
-  const templateName = template_name || "primeiro_contato_qualificacao";
+async function sendTemplate(
+  body: any,
+  phone: string,
+  graphUrl: string,
+  instance: CloudInstance,
+  supabase: any
+) {
+  const { template_name, template_params, template_language, lead_id } = body;
+  const templateName = template_name;
+  const language = template_language || "pt_BR";
 
-  // Sempre normalizar nome via IA — extrai primeiro nome real de qualquer input
-  if (template_params && template_params.length > 0) {
-    const normalized = await smartNormalizeName(template_params[0], cfg, lead_id);
-    template_params[0] = normalized || 'tudo bem';
-    console.log(`[Cloud API] Template param[0]: "${template_params[0]}"`);
+  if (!templateName) {
+    throw new Error("template_name obrigatório para send_template");
   }
 
   const payload: any = {
@@ -208,34 +205,36 @@ async function sendTemplate(body: any, phone: string, cfg: CloudApiCfg, supabase
     type: "template",
     template: {
       name: templateName,
-      language: { code: "pt_BR" },
+      language: { code: language },
     },
   };
 
   if (template_params && template_params.length > 0) {
-    payload.template.components = [{
-      type: "body",
-      parameters: template_params.map((p: string) => ({ type: "text", text: p })),
-    }];
+    payload.template.components = [
+      {
+        type: "body",
+        parameters: template_params.map((p: string) => ({ type: "text", text: p })),
+      },
+    ];
   }
 
-  const response = await callCloudAPI(payload, cfg);
-  const content = supabase ? await buildTemplateText(supabase, templateName, template_params) : `[Template: ${templateName}]`;
+  const response = await callCloudAPI(graphUrl, instance.api_key, payload);
+  const content = await buildTemplateText(supabase, templateName, template_params);
 
   return {
     ok: response.ok,
     data: response.data,
     content,
     messageType: "template",
-    extraMeta: { template_name: templateName },
+    extraMeta: { template_name: templateName, template_language: language },
   };
 }
 
 // ==================== SEND TEXT ====================
 
-async function sendText(body: any, phone: string, cfg: CloudApiCfg) {
+async function sendText(body: any, phone: string, graphUrl: string, instance: CloudInstance) {
   const text = body.text || body.message;
-  if (!text) throw new Error("text/message required");
+  if (!text) throw new Error("text/message obrigatório");
 
   const payload = {
     messaging_product: "whatsapp",
@@ -244,7 +243,7 @@ async function sendText(body: any, phone: string, cfg: CloudApiCfg) {
     text: { body: text },
   };
 
-  const response = await callCloudAPI(payload, cfg);
+  const response = await callCloudAPI(graphUrl, instance.api_key, payload);
 
   return {
     ok: response.ok,
@@ -254,16 +253,17 @@ async function sendText(body: any, phone: string, cfg: CloudApiCfg) {
   };
 }
 
-// ==================== SEND MEDIA ====================
+// ==================== SEND MEDIA (image/document/video) ====================
 
-async function sendMedia(body: any, phone: string, type: "image" | "document" | "audio" | "video", cfg: CloudApiCfg) {
+async function sendMedia(
+  body: any,
+  phone: string,
+  type: "image" | "document" | "video",
+  graphUrl: string,
+  instance: CloudInstance
+) {
   const { media_url, caption, filename } = body;
-  if (!media_url) throw new Error("media_url required");
-
-  // Áudio: upload via Media API pra garantir formato nativo WhatsApp
-  if (type === "audio") {
-    return await sendAudioViaUpload(media_url, phone, cfg, caption);
-  }
+  if (!media_url) throw new Error("media_url obrigatório");
 
   const mediaObj: any = { link: media_url };
   if (caption) mediaObj.caption = caption;
@@ -276,32 +276,45 @@ async function sendMedia(body: any, phone: string, type: "image" | "document" | 
     [type]: mediaObj,
   };
 
-  const response = await callCloudAPI(payload, cfg);
+  const response = await callCloudAPI(graphUrl, instance.api_key, payload);
+
+  const contentLabel = {
+    image: "Imagem",
+    document: "Documento",
+    video: "Vídeo",
+  }[type];
 
   return {
     ok: response.ok,
     data: response.data,
-    content: caption || `[${type === "image" ? "Imagem" : "Documento"}]`,
+    content: caption || `[${contentLabel}]`,
     messageType: type,
     extraMeta: { media_url },
   };
 }
 
-// ==================== SEND AUDIO VIA MEDIA UPLOAD ====================
+// ==================== SEND AUDIO (upload via Media API) ====================
 
-async function sendAudioViaUpload(audioUrl: string, phone: string, cfg: CloudApiCfg, caption?: string) {
-  // 1. Baixar o áudio do Storage
+async function sendAudioViaUpload(
+  body: any,
+  phone: string,
+  graphUrl: string,
+  instance: CloudInstance
+) {
+  const { media_url: audioUrl, caption } = body;
+  if (!audioUrl) throw new Error("media_url obrigatório para áudio");
+
+  // 1. Baixar áudio
   const audioRes = await fetch(audioUrl);
-  if (!audioRes.ok) throw new Error("Falha ao baixar áudio do storage");
+  if (!audioRes.ok) throw new Error("Falha ao baixar áudio");
   const audioBuffer = await audioRes.arrayBuffer();
-  const contentType = audioRes.headers.get("content-type") || "audio/ogg";
 
-  // 2. Upload via Media API (multipart/form-data manual)
+  // 2. Meta Cloud aceita OGG (Opus codec). Frontend já grava OGG nativo via OpusMediaRecorder.
+  //    NÃO incluir "codecs=opus" no Content-Type — Meta rejeita.
   const boundary = `----FormBoundary${Date.now()}`;
-  const mimeType = contentType.includes("ogg") ? "audio/ogg; codecs=opus" : contentType;
-  const filename = contentType.includes("ogg") ? "audio.ogg" : "audio.webm";
+  const mimeType = "audio/ogg";
+  const filename = "audio.ogg";
 
-  // Construir body multipart manualmente (Deno edge runtime não suporta FormData com Blob)
   const header = [
     `--${boundary}`,
     `Content-Disposition: form-data; name="messaging_product"\r\n`,
@@ -317,33 +330,32 @@ async function sendAudioViaUpload(audioUrl: string, phone: string, cfg: CloudApi
   const footer = `\r\n--${boundary}--\r\n`;
   const headerBytes = new TextEncoder().encode(header);
   const footerBytes = new TextEncoder().encode(footer);
-  const body = new Uint8Array(headerBytes.length + audioBuffer.byteLength + footerBytes.length);
-  body.set(headerBytes, 0);
-  body.set(new Uint8Array(audioBuffer), headerBytes.length);
-  body.set(footerBytes, headerBytes.length + audioBuffer.byteLength);
+  const mediaBody = new Uint8Array(headerBytes.length + audioBuffer.byteLength + footerBytes.length);
+  mediaBody.set(headerBytes, 0);
+  mediaBody.set(new Uint8Array(audioBuffer), headerBytes.length);
+  mediaBody.set(footerBytes, headerBytes.length + audioBuffer.byteLength);
 
-  const uploadUrl = `https://graph.facebook.com/v22.0/${cfg.phoneNumberId}/media`;
+  const uploadUrl = `https://graph.facebook.com/${GRAPH_API_VERSION}/${instance.phone_number_id}/media`;
   const uploadRes = await fetch(uploadUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${cfg.token}`,
+      Authorization: `Bearer ${instance.api_key}`,
       "Content-Type": `multipart/form-data; boundary=${boundary}`,
     },
-    body,
+    body: mediaBody,
   });
 
   const uploadData = await uploadRes.json();
   if (!uploadRes.ok || !uploadData.id) {
-    console.error("[Cloud API] Media upload failed:", JSON.stringify(uploadData));
+    console.error("[cloud-api] Media upload failed:", JSON.stringify(uploadData));
     // Fallback: tentar via link direto
-    console.log("[Cloud API] Trying link fallback...");
     const payload = {
       messaging_product: "whatsapp",
       to: phone,
       type: "audio",
       audio: { link: audioUrl },
     };
-    const response = await callCloudAPI(payload, cfg);
+    const response = await callCloudAPI(graphUrl, instance.api_key, payload);
     return {
       ok: response.ok,
       data: response.data,
@@ -354,9 +366,8 @@ async function sendAudioViaUpload(audioUrl: string, phone: string, cfg: CloudApi
   }
 
   const mediaId = uploadData.id;
-  console.log(`[Cloud API] Audio uploaded, media_id: ${mediaId}`);
+  console.log(`[cloud-api] Audio uploaded. media_id=${mediaId}`);
 
-  // 3. Enviar mensagem de áudio com media_id
   const payload = {
     messaging_product: "whatsapp",
     to: phone,
@@ -364,7 +375,7 @@ async function sendAudioViaUpload(audioUrl: string, phone: string, cfg: CloudApi
     audio: { id: mediaId },
   };
 
-  const response = await callCloudAPI(payload, cfg);
+  const response = await callCloudAPI(graphUrl, instance.api_key, payload);
 
   return {
     ok: response.ok,
@@ -375,46 +386,54 @@ async function sendAudioViaUpload(audioUrl: string, phone: string, cfg: CloudApi
   };
 }
 
-// ==================== CALL CLOUD API ====================
+// ==================== CALL GRAPH API ====================
 
-async function callCloudAPI(payload: any, cfg: CloudApiCfg): Promise<{ ok: boolean; data: any }> {
-  const response = await fetch(cfg.graphUrl, {
+async function callCloudAPI(
+  graphUrl: string,
+  token: string,
+  payload: any
+): Promise<{ ok: boolean; data: any }> {
+  const response = await fetch(graphUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${cfg.token}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
-
   const data = await response.json();
   return { ok: response.ok, data };
 }
 
 // ==================== HELPERS ====================
 
-async function getOfficialInstanceId(supabase: any): Promise<string | null> {
-  const { data } = await supabase
-    .from("whatsapp_instances")
-    .select("id")
-    .eq("name", "IAP - OFICIAL")
-    .limit(1)
-    .maybeSingle();
-  return data?.id || null;
-}
-
-async function buildTemplateText(supabase: any, templateName: string, params?: string[]): Promise<string> {
-  // Buscar texto da tabela (fonte única de verdade)
+async function buildTemplateText(
+  supabase: any,
+  templateName: string,
+  params?: string[]
+): Promise<string> {
+  // Busca template — prioriza components (Meta JSONB), cai pra body_text legado
   const { data: tpl } = await supabase
-    .from('whatsapp_templates')
-    .select('body_text')
-    .eq('name', templateName)
+    .from("whatsapp_cloud_templates")
+    .select("body_text, components")
+    .eq("name", templateName)
     .maybeSingle();
 
-  let text = tpl?.body_text || `[Template: ${templateName}]`;
-  if (params) {
-    params.forEach((p, i) => {
-      text = text.replace(`{{${i + 1}}}`, p);
+  let text: string | null = null;
+
+  // 1. Tenta extrair body do components (formato Meta)
+  if (tpl?.components && Array.isArray(tpl.components)) {
+    const body = tpl.components.find((c: any) => c?.type === "BODY");
+    if (body?.text) text = body.text;
+  }
+  // 2. Fallback campo legado
+  if (!text && tpl?.body_text) text = tpl.body_text;
+  // 3. Último fallback
+  if (!text) text = `[Template: ${templateName}]`;
+
+  if (params && params.length > 0) {
+    params.forEach((p: string, i: number) => {
+      text = text!.replace(`{{${i + 1}}}`, p);
     });
   }
   return text;

@@ -98,7 +98,20 @@ import SalesWorkspace from "./pages/SalesWorkspace";
 import SalesAgenda from "./pages/SalesAgendaV2";
 import SalesMaterialsConfig from "./pages/SalesMaterialsConfig";
 import SalesTraining from "./pages/SalesTraining";
+import SalesCampaigns from "./pages/SalesCampaigns";
+import SalesCampaignNew from "./pages/SalesCampaignNew";
+import SalesCampaignDetail from "./pages/SalesCampaignDetail";
 import CockpitShell from "./pages/CockpitShell";
+import MarketingAutomations from "./pages/MarketingAutomations";
+import MarketingAutomationEditor from "./pages/MarketingAutomationEditor";
+import MarketingDashboard from "./pages/MarketingDashboard";
+import EmailMarketingHub from "./pages/EmailMarketingHub";
+import EmailCampaignNew from "./pages/EmailCampaignNew";
+import EmailCampaignDetail from "./pages/EmailCampaignDetail";
+import EmailTemplates from "./pages/EmailTemplates";
+import EmailTemplateEditorPage from "./pages/EmailTemplateEditorPage";
+import WhatsAppTemplates from "./pages/WhatsAppTemplates";
+import WhatsAppTemplateNew from "./pages/WhatsAppTemplateNew";
 
 // Gestão básica
 import TaskManagement from "./pages/TaskManagement";
@@ -247,7 +260,26 @@ const AppRoutes = () => {
       <Route path="/comercial/configuracoes" element={<Navigate to="/configuracoes?s=pipeline" replace />} />
       <Route path="/comercial/materiais" element={<ProtectedRoute><SalesMaterialsConfig /></ProtectedRoute>} />
       <Route path="/comercial/treinamento" element={<ProtectedRoute><SalesTraining /></ProtectedRoute>} />
+      <Route path="/comercial/campanhas" element={<ProtectedRoute><SalesCampaigns /></ProtectedRoute>} />
+      <Route path="/comercial/campanhas/nova" element={<ProtectedRoute><SalesCampaignNew /></ProtectedRoute>} />
+      <Route path="/comercial/campanhas/:id" element={<ProtectedRoute><SalesCampaignDetail /></ProtectedRoute>} />
       <Route path="/comercial/agente-ia" element={<Navigate to="/configuracoes?s=agente-ia" replace />} />
+
+      {/* Marketing — automações */}
+      <Route path="/marketing/automacoes" element={<ProtectedRoute><MarketingAutomations /></ProtectedRoute>} />
+      <Route path="/marketing/automacoes/nova" element={<ProtectedRoute><MarketingAutomationEditor /></ProtectedRoute>} />
+      <Route path="/marketing/automacoes/:id" element={<ProtectedRoute><MarketingAutomationEditor /></ProtectedRoute>} />
+
+      {/* Marketing — dashboard, email, templates */}
+      <Route path="/marketing" element={<ProtectedRoute><MarketingDashboard /></ProtectedRoute>} />
+      <Route path="/marketing/campanhas" element={<ProtectedRoute><EmailMarketingHub /></ProtectedRoute>} />
+      <Route path="/marketing/campanhas/nova" element={<ProtectedRoute><EmailCampaignNew /></ProtectedRoute>} />
+      <Route path="/marketing/campanhas/:id" element={<ProtectedRoute><EmailCampaignDetail /></ProtectedRoute>} />
+      <Route path="/marketing/templates" element={<ProtectedRoute><EmailTemplates /></ProtectedRoute>} />
+      <Route path="/marketing/templates/novo" element={<ProtectedRoute><EmailTemplateEditorPage /></ProtectedRoute>} />
+      <Route path="/marketing/templates/:id" element={<ProtectedRoute><EmailTemplateEditorPage /></ProtectedRoute>} />
+      <Route path="/marketing/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
+      <Route path="/marketing/whatsapp-templates/novo" element={<ProtectedRoute><WhatsAppTemplateNew /></ProtectedRoute>} />
 
       {/* Gestão básica (tarefas, calendário, reuniões) */}
       <Route path="/gestao/tarefas" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
