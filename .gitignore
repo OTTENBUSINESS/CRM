@@ -30,3 +30,9 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+.vercel
+
+# Claude Code (sessao local / ferramentas de migracao — nao versionar)
+.claude/
+deploy-agent.js
