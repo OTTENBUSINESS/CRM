@@ -61,6 +61,7 @@ import { TimelineView } from "@/components/timeline/TimelineView";
 import { CancelRefundModal } from "@/components/sales/CancelRefundModal";
 import { ScheduleMessageModal } from "@/components/sales/ScheduleMessageModal";
 import { LeadTagsInput } from "@/components/sales/LeadTagsInput";
+import { NFSeTab } from "@/components/sales/nfse/NFSeTab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Hooks
@@ -1464,7 +1465,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           {/* Right Column - Tabs */}
           <div className="lg:col-span-8 space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-6 h-12">
+              <TabsList className="grid w-full grid-cols-7 h-12">
                 <TabsTrigger value="timeline" className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   <span className="hidden sm:inline">Timeline</span>
@@ -1488,6 +1489,10 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                 <TabsTrigger value="notas" className="flex items-center gap-2">
                   <StickyNote className="h-4 w-4" />
                   <span className="hidden sm:inline">Notas</span>
+                </TabsTrigger>
+                <TabsTrigger value="nfse" className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  <span className="hidden sm:inline">NFS-e</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1921,6 +1926,11 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
                   })()}
 
                 </div>
+              </TabsContent>
+
+              {/* NFS-e Tab */}
+              <TabsContent value="nfse">
+                <NFSeTab leadId={id!} lead={lead} />
               </TabsContent>
 
               {/* Conversions data moved to Comercial tab bottom - accessible via "Origens" section */}

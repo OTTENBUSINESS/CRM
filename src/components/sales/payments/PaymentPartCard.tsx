@@ -34,6 +34,8 @@ import { useMarkPaymentAsPaid, useUpdateDealPayment, usePaymentHasEdits } from "
 import { useTriggerCommissionCalculation } from "@/hooks/useCommissions";
 import { usePaymentGateways } from "@/hooks/usePaymentGateways";
 import { useBillingReminderTemplate, useSendBillingReminder, buildBillingMessage, getDefaultTemplate } from "@/hooks/useBillingReminder";
+import { useEmitNFSe, getNFSeResultStatus } from "@/hooks/useNFSe";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import type { DealPayment, BillingType } from "@/types/payment.types";
 import { BILLING_TYPE_LABELS, isCreditCardType } from "@/types/payment.types";
@@ -85,6 +87,7 @@ export function PaymentPartCard({
   const updatePaymentMutation = useUpdateDealPayment();
   const triggerCommission = useTriggerCommissionCalculation();
   const { data: gateways } = usePaymentGateways();
+  const emitNFSe = useEmitNFSe();
 
   // Billing reminder
   const [showBillingModal, setShowBillingModal] = useState(false);
@@ -286,6 +289,57 @@ export function PaymentPartCard({
     }
   };
 
+  const handleEmitNFSe = async () => {
+    const nfseLeadId =
+      propLeadId ||
+      payment.payer_lead_id ||
+      payment.payer_lead?.id ||
+      (payment.deal as any)?.lead?.id ||
+      payment.deal?.contact?.id ||
+      "";
+
+    if (!nfseLeadId) {
+      sonnerToast.error("Lead nao encontrado", {
+        description: "Nao foi possivel identificar o cliente deste pagamento.",
+      });
+      return;
+    }
+
+    const toastId = sonnerToast.loading("Emitindo NFS-e...", {
+      description: "Isso pode levar ate 90 segundos.",
+    });
+
+    try {
+      const data = await emitNFSe.mutateAsync({
+        dealPaymentId: payment.id,
+        leadId: nfseLeadId,
+      });
+      const status = getNFSeResultStatus(data);
+
+      if (status === "autorizado") {
+        sonnerToast.success("NFS-e autorizada!", {
+          id: toastId,
+          description: data?.nfse_number ? `Nota nº ${data.nfse_number}` : undefined,
+        });
+      } else if (status === "erro") {
+        sonnerToast.error("Erro na emissao da NFS-e", {
+          id: toastId,
+          description: data?.error_message || data?.message || "Veja a aba NFS-e do lead.",
+        });
+      } else {
+        sonnerToast.info("NFS-e em processamento", {
+          id: toastId,
+          description: "Acompanhe o status na aba NFS-e do lead.",
+        });
+      }
+    } catch (error: any) {
+      sonnerToast.error("Erro ao emitir NFS-e", {
+        id: toastId,
+        description: error?.message || "Tente novamente.",
+      });
+    }
+  };
+
   const handleOpenBilling = () => {
     const template = billingTemplate || getDefaultTemplate();
     // Extract parcela info from description (e.g. "Parcela 1/10")
@@ -482,6 +536,20 @@ export function PaymentPartCard({
                           <Percent className="h-4 w-4 mr-2" />
                         )}
                         Calcular Comissao
+                      </DropdownMenuItem>
+                    )}
+                    {isPaid && (
+                      <DropdownMenuItem
+                        onClick={handleEmitNFSe}
+                        disabled={emitNFSe.isPending}
+                        className="text-purple-600"
+                      >
+                        {emitNFSe.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Receipt className="h-4 w-4 mr-2" />
+                        )}
+                        Emitir NF
                       </DropdownMenuItem>
                     )}
                     {payment.status === "pending" || payment.status === "overdue" || payment.status === "link_generated" ? (

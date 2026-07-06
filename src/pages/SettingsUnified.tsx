@@ -20,6 +20,7 @@ import {
   Users,
   Phone,
   Percent,
+  Receipt,
   Bell,
   Calendar,
   Smartphone,
@@ -44,6 +45,7 @@ import { WhatsAppTaskBotConfig } from "@/components/settings/WhatsAppTaskBotConf
 
 // === Comercial sub-tabs (reused) ===
 import { PipelineConfigTab } from "@/components/settings/PipelineConfigTab";
+import { FiscalConfigTab } from "@/components/settings/FiscalConfigTab";
 import { AutomationRulesTab } from "@/components/settings/AutomationRulesTab";
 import { TrainingCallsTab } from "@/components/settings/TrainingCallsTab";
 import { AIAgentTab } from "@/components/sales/ai/AIAgentTab";
@@ -189,6 +191,13 @@ const navigationSections: NavSection[] = [
         label: "Automações",
         icon: Zap,
         description: "Regras automáticas: quando um lead muda de etapa, dispare WhatsApp, crie tarefa, notifique o gestor, etc.",
+      },
+      {
+        id: "fiscal",
+        label: "Fiscal (NFS-e)",
+        icon: Receipt,
+        description: "Dados fiscais da sua empresa e integração com a Focus NFe para emissão de notas fiscais de serviço, além do PIX e template de cobrança.",
+        hint: "Focus NFe, PIX, cobrança",
       },
     ],
   },
@@ -415,6 +424,8 @@ function SettingsContent({ section }: { section: string }) {
       return <CommissionsTab />;
     case "automacoes":
       return <AutomationRulesTab />;
+    case "fiscal":
+      return <FiscalConfigTab />;
 
     // IA & Bots
     case "agente-ia":
