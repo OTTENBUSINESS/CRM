@@ -113,6 +113,20 @@ import EmailTemplateEditorPage from "./pages/EmailTemplateEditorPage";
 import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import WhatsAppTemplateNew from "./pages/WhatsAppTemplateNew";
 
+// Prospecção (lazy — módulo carrega sob demanda)
+const ProspeccaoSearch = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoSearch"));
+const ProspeccaoDescobertos = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoDescobertos"));
+const ProspeccaoDiagnostico = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoDiagnostico"));
+const ProspeccaoDiagnosticoPrint = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoDiagnosticoPrint"));
+const ProspeccaoConfiguracoes = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoConfiguracoes"));
+
+// Fallback de carregamento das páginas de Prospecção
+const ProspeccaoFallback = (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
 // Gestão básica
 import TaskManagement from "./pages/TaskManagement";
 import TeamCalendar from "./pages/TeamCalendar";
@@ -264,6 +278,13 @@ const AppRoutes = () => {
       <Route path="/comercial/campanhas/nova" element={<ProtectedRoute><SalesCampaignNew /></ProtectedRoute>} />
       <Route path="/comercial/campanhas/:id" element={<ProtectedRoute><SalesCampaignDetail /></ProtectedRoute>} />
       <Route path="/comercial/agente-ia" element={<Navigate to="/configuracoes?s=agente-ia" replace />} />
+
+      {/* Comercial — Prospecção (rotas específicas antes das rotas com :param) */}
+      <Route path="/comercial/prospeccao/configuracoes" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><ProspeccaoConfiguracoes /></React.Suspense></ProtectedRoute>} />
+      <Route path="/comercial/prospeccao/diagnostico/:diagnosticoId/print" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><ProspeccaoDiagnosticoPrint /></React.Suspense></ProtectedRoute>} />
+      <Route path="/comercial/prospeccao/diagnostico/:diagnosticoId" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><ProspeccaoDiagnostico /></React.Suspense></ProtectedRoute>} />
+      <Route path="/comercial/prospeccao/busca/:buscaId" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><ProspeccaoDescobertos /></React.Suspense></ProtectedRoute>} />
+      <Route path="/comercial/prospeccao" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><ProspeccaoSearch /></React.Suspense></ProtectedRoute>} />
 
       {/* Marketing — automações */}
       <Route path="/marketing/automacoes" element={<ProtectedRoute><MarketingAutomations /></ProtectedRoute>} />

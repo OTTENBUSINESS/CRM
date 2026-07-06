@@ -21,6 +21,7 @@ import {
   Zap,
   FileText,
   MessageCircle,
+  Radar,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -74,6 +75,7 @@ const sections: NavSection[] = [
       { title: "Cockpit", url: "/comercial/cockpit", icon: Headphones },
       { title: "Dashboard", url: "/comercial", icon: LayoutDashboard, exact: true },
       { title: "Pipeline", url: "/comercial/pipeline", icon: Kanban },
+      { title: "Prospecção", url: "/comercial/prospeccao", icon: Radar },
       { title: "Inbox", url: "/comercial/inbox", icon: MessageSquare },
       { title: "Treinamento", url: "/comercial/treinamento", icon: BookOpen },
     ],
