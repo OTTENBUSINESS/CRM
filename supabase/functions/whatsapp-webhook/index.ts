@@ -155,6 +155,7 @@ function normalizeWebhookPayload(raw: any): any {
 
 import { MediaData, downloadAndSaveMedia, downloadAndDecryptAudio, transcribeAudioFromBase64, getExtensionFromMimetype, describeImageViaGemini } from "./media.ts";
 import { callTicketRouterLLM, TicketDecisionAction } from "./llm.ts";
+import { tryHandleViaAgentPlatform } from "./agent-platform.ts";
 import { getOrCreateContactWithProfilePic } from "./contacts.ts";
 import { getOrCreateGroup } from "./groups.ts";
 import { getIntegrationKey } from "./config.ts";
@@ -599,6 +600,28 @@ async function handleIncomingMessage(
   }
 
   console.log('[Webhook] Message saved:', savedMessage.id);
+
+  // === ROTEADOR V2 (Plataforma de Agentes) — PORTEIRO ===
+  // Gated por config.agent_platform_v2_enabled (texto 'true'/'false').
+  // Se um agente V2 da instância trata a mensagem, NÃO segue pro fluxo legado.
+  if (!fromMe && !isGroup && content && content.trim()) {
+    try {
+      const handledByV2 = await tryHandleViaAgentPlatform({
+        supabase,
+        instance: { id: instanceId, api_url: instanceApiUrl, api_key: instanceApiKey },
+        senderPhone,
+        text: content,
+        messageId,
+        leadId,   // lead que o webhook criou/achou — agente usa pra agendar/qualificar
+      });
+      if (handledByV2) {
+        console.log('[Webhook] V2 agent handled message — skipping legacy flow');
+        return;
+      }
+    } catch (e) {
+      console.error('[Webhook] V2 router error (caindo pro legado):', (e as Error).message);
+    }
+  }
 
   // === LEAD REPLIED — TRIGGER AUTOMATION RULES ===
   if (leadId && !fromMe && !isGroup) {

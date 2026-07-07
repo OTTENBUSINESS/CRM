@@ -207,3 +207,21 @@ verify_jwt = false
 #
 # ⚠️ IMPORTANTE: Ao criar função nova, SEMPRE deixar com default (true)
 # a não ser que ela seja webhook, público ou cron.
+
+# ============================================================
+# PLATAFORMA DE AGENTES (verify_jwt = false)
+# ============================================================
+[functions.agent-runner]
+verify_jwt = false
+
+[functions.agent-jobs-poller]
+verify_jwt = false
+
+[functions.generate-embedding]
+verify_jwt = false
+
+[functions.agents-codex-import]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false

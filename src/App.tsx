@@ -120,6 +120,17 @@ const ProspeccaoDiagnostico = React.lazy(() => import("@/modules/prospeccao/page
 const ProspeccaoDiagnosticoPrint = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoDiagnosticoPrint"));
 const ProspeccaoConfiguracoes = React.lazy(() => import("@/modules/prospeccao/pages/ProspeccaoConfiguracoes"));
 
+// Plataforma de Agentes IA (lazy — módulo aditivo)
+const AgentList = React.lazy(() => import("./agents-platform/pages/AgentList"));
+const AgentConfigPage = React.lazy(() => import("./agents-platform/pages/AgentConfigPage"));
+const AgentChatPage = React.lazy(() => import("./agents-platform/pages/AgentChatPage"));
+const AgentPlaygroundPage = React.lazy(() => import("./agents-platform/pages/AgentPlaygroundPage"));
+const AgentSkillsLibraryPage = React.lazy(() => import("./agents-platform/pages/AgentSkillsLibraryPage"));
+const AgentCredentialsPage = React.lazy(() => import("./agents-platform/pages/AgentCredentialsPage"));
+const AgentSessionsPage = React.lazy(() => import("./agents-platform/pages/AgentSessionsPage"));
+const AgentMetricsPage = React.lazy(() => import("./agents-platform/pages/AgentMetricsPage"));
+const AgentOrgChartPage = React.lazy(() => import("./agents-platform/pages/AgentOrgChartPage"));
+
 // Fallback de carregamento das páginas de Prospecção
 const ProspeccaoFallback = (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -301,6 +312,21 @@ const AppRoutes = () => {
       <Route path="/marketing/templates/:id" element={<ProtectedRoute><EmailTemplateEditorPage /></ProtectedRoute>} />
       <Route path="/marketing/whatsapp-templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
       <Route path="/marketing/whatsapp-templates/novo" element={<ProtectedRoute><WhatsAppTemplateNew /></ProtectedRoute>} />
+
+      {/* Plataforma de Agentes IA — rotas fixas ANTES das rotas com :slug */}
+      <Route path="/agentes" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentList /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/habilidades" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentSkillsLibraryPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/credenciais" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentCredentialsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/organograma" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentOrgChartPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/sessoes" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentSessionsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/metricas" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentMetricsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/playground" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentPlaygroundPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentConfigPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/config" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentConfigPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/chat" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentChatPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/playground" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentPlaygroundPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/sessoes" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentSessionsPage /></React.Suspense></ProtectedRoute>} />
+      <Route path="/agentes/:slug/metricas" element={<ProtectedRoute><React.Suspense fallback={ProspeccaoFallback}><AgentMetricsPage /></React.Suspense></ProtectedRoute>} />
 
       {/* Gestão básica (tarefas, calendário, reuniões) */}
       <Route path="/gestao/tarefas" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />

@@ -22,6 +22,10 @@ import {
   FileText,
   MessageCircle,
   Radar,
+  Bot,
+  Library,
+  KeyRound,
+  Network,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useNotificationContext } from "@/hooks/useNotifications";
@@ -90,6 +94,16 @@ const sections: NavSection[] = [
       { title: "Automações", url: "/marketing/automacoes", icon: Zap },
       { title: "Templates Email", url: "/marketing/templates", icon: FileText },
       { title: "Templates WhatsApp", url: "/marketing/whatsapp-templates", icon: MessageCircle },
+    ],
+  },
+  {
+    id: "agentes",
+    label: "Agentes IA",
+    items: [
+      { title: "Meus agentes", url: "/agentes", icon: Bot, exact: true },
+      { title: "Habilidades", url: "/agentes/habilidades", icon: Library },
+      { title: "Credenciais", url: "/agentes/credenciais", icon: KeyRound },
+      { title: "Organograma", url: "/agentes/organograma", icon: Network },
     ],
   },
   {
