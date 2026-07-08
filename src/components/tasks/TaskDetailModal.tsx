@@ -40,6 +40,8 @@ function addBrasiliaTimezone(datetime: string | null | undefined): string | unde
   return datetime;
 }
 import { cn, ensureHttps } from "@/lib/utils";
+import { getMeetUrl, extractRoomNameFromLink } from "@/lib/livekit";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAIAgents } from "@/hooks/useAISalesAgent";
 import { toast as sonnerToast } from "sonner";
 
@@ -113,7 +115,14 @@ function formatDateTimeLocal(dateString: string | null) {
 export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName, clientPhone, clientEmail, productName }: TaskDetailModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { teamMember: authMember } = useAuth();
   const updateTask = useUpdateTask();
+
+  // Sala própria (LiveKit): se o meeting_link aponta pra /meet/<room>, deriva o link de HOST
+  const livekitRoomName = extractRoomNameFromLink(task?.meeting_link);
+  const livekitHostLink = livekitRoomName
+    ? getMeetUrl(livekitRoomName, { role: 'host', name: authMember?.name, leadId: task?.lead_id || undefined })
+    : null;
   const deleteTask = useDeleteTask();
   const completeTask = useCompleteTask();
   const completeRecurring = useCompleteRecurringTask();
@@ -1792,7 +1801,7 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
                       </Badge>
                     </div>
                   )}
-                  {task.meeting_link && (
+                  {task.meeting_link && !livekitHostLink && (
                     <a
                       href={ensureHttps(task.meeting_link)}
                       target="_blank"
@@ -1808,6 +1817,31 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
                       {task.meeting_link.includes('meet.google') ? 'Entrar no Google Meet' : 'Abrir reunião'}
                       <ExternalLink className="h-3 w-3 ml-auto" />
                     </a>
+                  )}
+                  {task.meeting_link && livekitHostLink && (
+                    <div className="space-y-1.5">
+                      <a
+                        href={livekitHostLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-emerald-600 text-white hover:bg-emerald-700"
+                      >
+                        <Video className="h-4 w-4" />
+                        Entrar como Host (Sala própria)
+                        <ExternalLink className="h-3 w-3 ml-auto" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(task.meeting_link!);
+                          sonnerToast.success('Link do convidado copiado!');
+                        }}
+                        className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm border border-border text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        Copiar link do convidado
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -2195,8 +2229,8 @@ export function TaskDetailModal({ task, open, onOpenChange, onUpdate, clientName
                 <Button
                   size="sm"
                   onClick={() => {
-                    // Abrir link da reunião em nova aba
-                    window.open(ensureHttps(task.meeting_link), '_blank');
+                    // Abrir link da reunião em nova aba (sala própria abre como HOST)
+                    window.open(livekitHostLink || ensureHttps(task.meeting_link), '_blank');
                     // Atualizar status para em andamento
                     updateTask.mutate({
                       id: task.id,

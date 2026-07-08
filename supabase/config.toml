@@ -225,3 +225,21 @@ verify_jwt = false
 
 [functions.telegram-webhook]
 verify_jwt = false
+
+# ============================================================
+# LIVEKIT (verify_jwt = false)
+# ============================================================
+# livekit-token e livekit-end-room: chamados da página pública /meet/:roomId,
+# onde o convidado (lead) entra só com o nome — NÃO tem login no CRM, logo
+# não existe JWT do Supabase pra validar.
+# livekit-webhook: webhook externo do LiveKit Cloud — não manda JWT; a função
+# valida a assinatura própria do LiveKit via WebhookReceiver (401 se inválida).
+
+[functions.livekit-token]
+verify_jwt = false
+
+[functions.livekit-webhook]
+verify_jwt = false
+
+[functions.livekit-end-room]
+verify_jwt = false

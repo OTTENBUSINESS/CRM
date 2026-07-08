@@ -149,6 +149,9 @@ import AdminUsers from "./pages/AdminUsers";
 // Public booking
 const BookMeeting = React.lazy(() => import("./pages/BookMeeting"));
 
+// Sala própria de videochamada (LiveKit) — pública, lead entra só com o link
+const MeetRoom = React.lazy(() => import("./pages/MeetRoom"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -250,6 +253,11 @@ const AppRoutes = () => {
       <Route path="/agendar" element={
         <React.Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
           <BookMeeting />
+        </React.Suspense>
+      } />
+      <Route path="/meet/:roomId" element={
+        <React.Suspense fallback={<div className="min-h-screen bg-zinc-900 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>}>
+          <MeetRoom />
         </React.Suspense>
       } />
 

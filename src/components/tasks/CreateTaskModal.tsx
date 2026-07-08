@@ -44,6 +44,7 @@ import {
   Repeat,
 } from "lucide-react";
 import { cn, ensureHttps } from "@/lib/utils";
+import { generateRoomName, getMeetUrl } from "@/lib/livekit";
 
 function addBrasiliaTimezone(datetime: string | undefined): string | undefined {
   if (!datetime) return undefined;
@@ -174,8 +175,8 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
   // Estado para vínculo com cliente (lead)
   const [selectedLeadId, setSelectedLeadId] = useState<string | undefined>(defaultValues?.lead_id);
 
-  // Novos estados para Google Calendar
-  const [meetingType, setMeetingType] = useState<'auto' | 'external' | 'none'>('none');
+  // Novos estados para Google Calendar / Sala própria (LiveKit)
+  const [meetingType, setMeetingType] = useState<'auto' | 'livekit' | 'external' | 'none'>('none');
   const [duration, setDuration] = useState(60);
   const [additionalAttendees, setAdditionalAttendees] = useState<string[]>([]);
   const [newAttendee, setNewAttendee] = useState('');
@@ -406,6 +407,13 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
       // Variável para armazenar o eventId do Google Calendar
       let googleEventId: string | undefined;
 
+      // Sala própria (LiveKit): gera roomName único + link do convidado (guest)
+      let livekitRoomName: string | undefined;
+      if (meetingTypes.includes(taskType) && !isPastDate && meetingType === 'livekit') {
+        livekitRoomName = generateRoomName();
+        finalMeetingLink = getMeetUrl(livekitRoomName);
+      }
+
       // Determinar lead_id e organization_id finais
       const finalLeadId = selectedLeadId || undefined;
       const selectedLead = selectedLeadId ? leads.find((l: any) => l.id === selectedLeadId) : null;
@@ -503,6 +511,31 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
         recurrence_interval_days: isRecurring ? recurrenceIntervalDays : undefined,
         is_critical: isCritical || undefined,
       } as any);
+
+      // Sala própria (LiveKit): garante a linha em meetings vinculada à sala
+      // (o webhook do LiveKit usa livekit_room_name pra iniciar a gravação)
+      if (livekitRoomName) {
+        const { error: meetErr } = await supabase.from('meetings').insert({
+          title: finalTitle,
+          type: 'online',
+          lead_id: finalLeadId || null,
+          organization_id: finalOrganizationId || null,
+          activity_id: createdTask?.id || null,
+          meeting_type: 'sales',
+          team: selectedTeam || 'sales',
+          status: 'active',
+          livekit_room_name: livekitRoomName,
+          recording_status: 'pending',
+          meeting_link: finalMeetingLink,
+          created_by: currentUser?.id || null,
+          transcriptions: [],
+          participants: [],
+        });
+        if (meetErr) {
+          // Não-fatal: a página MeetRoom cria a linha como fallback quando o host entrar
+          console.warn('[CreateTaskModal] Falha ao registrar meeting LiveKit (não-fatal):', meetErr.message);
+        }
+      }
 
       // Se criou evento no Google Calendar, atualizar a tarefa com o google_event_id
       // Isso evita duplicação quando o sync do Google Calendar rodar
@@ -1047,8 +1080,8 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
                 <div className="space-y-2 p-2 bg-muted/50 rounded-lg border">
                   <RadioGroup
                     value={meetingType}
-                    onValueChange={(v) => setMeetingType(v as 'auto' | 'external' | 'none')}
-                    className="flex gap-3"
+                    onValueChange={(v) => setMeetingType(v as 'auto' | 'livekit' | 'external' | 'none')}
+                    className="flex gap-3 flex-wrap"
                   >
                     <Label
                       htmlFor="meeting-auto"
@@ -1063,6 +1096,17 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
                       Criar Meet
                     </Label>
                     <Label
+                      htmlFor="meeting-livekit"
+                      className={cn(
+                        "flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer text-xs",
+                        meetingType === "livekit" ? "border-emerald-500 bg-emerald-50" : "border-transparent"
+                      )}
+                    >
+                      <RadioGroupItem value="livekit" id="meeting-livekit" className="h-3 w-3" />
+                      <Video className="h-3 w-3 text-emerald-500" />
+                      Sala própria (CRM)
+                    </Label>
+                    <Label
                       htmlFor="meeting-external"
                       className={cn(
                         "flex items-center gap-1.5 px-2 py-1 rounded border cursor-pointer text-xs",
@@ -1074,6 +1118,12 @@ export function CreateTaskModal({ open, onOpenChange, onSuccess, defaultValues, 
                       Link externo
                     </Label>
                   </RadioGroup>
+
+                  {meetingType === 'livekit' && (
+                    <div className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
+                      ✅ Link da sala própria será gerado ao criar — com gravação automática. O link de host fica no detalhe da tarefa.
+                    </div>
+                  )}
 
                   {meetingType === 'external' && (
                     <div className="space-y-1">
