@@ -2029,6 +2029,7 @@ export const SalesLeadDetailContent = ({ leadId, hideBackButton }: {
           is_meeting: true,
           meeting_type: selectedMeeting.meeting_type,
           meeting_link: selectedMeeting.meeting_link,
+          recording_url: selectedMeeting.recording_url || selectedMeeting.meeting?.recording_url,
         };
         return (
           <CallDetailModal
