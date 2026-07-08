@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Task } from '@/hooks/useTasks';
 import { setCallMode } from '@/lib/call-mode';
+import { isLiveKitLink, extractRoomNameFromLink, getMeetUrl } from '@/lib/livekit';
 
 // =====================================================
 // TIPOS
@@ -212,6 +213,24 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
     if (!teamMember) {
       toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
       return;
+    }
+
+    // === SALA PRÓPRIA (LiveKit) ===
+    // O link /meet/ tem sala com gravação e transcrição embutidas — o fluxo
+    // antigo (abrir Google Meet + compartilhar aba pra transcrever) NÃO se aplica.
+    // Abre direto como host e não inicia sessão do painel.
+    if (task.meeting_link && isLiveKitLink(task.meeting_link)) {
+      const roomName = extractRoomNameFromLink(task.meeting_link);
+      if (roomName) {
+        const hostUrl = getMeetUrl(roomName, {
+          role: 'host',
+          name: teamMember.name || undefined,
+          leadId: task.lead_id || undefined,
+        });
+        window.open(hostUrl, '_blank', 'noopener');
+        toast({ title: "🎥 Sala própria aberta", description: "Você entrou como host — gravação automática ao entrar." });
+        return;
+      }
     }
 
     // Guard: não iniciar nova reunião se já tem uma ativa no contexto
