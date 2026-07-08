@@ -40,6 +40,8 @@ interface MeetingRecord {
   ended_at?: string;
   meeting_link?: string;
   meeting_type?: string;
+  recording_url?: string;
+  recording_status?: string;
   transcriptions?: any[];
   ai_analysis?: any;
   lead_id?: string;
@@ -517,6 +519,15 @@ function MeetingHistoryItem({
                   }}>
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Abrir link da reunião
+                  </DropdownMenuItem>
+                )}
+                {meeting.recording_url && (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(meeting.recording_url, '_blank');
+                  }}>
+                    <Video className="h-4 w-4 mr-2 text-violet-600" />
+                    Ver gravação
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
