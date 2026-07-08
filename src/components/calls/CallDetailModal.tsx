@@ -880,6 +880,19 @@ export function CallDetailModal({ open, onOpenChange, call, hideLeadLink = false
                 <CallRating callId={call.id} currentRating={call.rating ?? null} size="sm" showLabel={false} />
               </div>
             </div>
+            {call.recording_url && (
+              <div className="mt-3">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white"
+                  onClick={() => window.open(call.recording_url, '_blank', 'noopener')}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Ver gravação da reunião
+                </Button>
+              </div>
+            )}
           </DialogHeader>
 
           {/* Player sticky */}

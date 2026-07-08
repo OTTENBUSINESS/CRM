@@ -403,6 +403,7 @@ function MeetingHistoryItem({
     is_meeting: true,
     meeting_type: meeting.meeting_type,
     meeting_link: meeting.meeting_link,
+    recording_url: meeting.recording_url,
     _fromActivity: meeting._fromActivity,
   };
 
